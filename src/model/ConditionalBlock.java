@@ -247,14 +247,22 @@ public class ConditionalBlock extends FlowBlock {
 
         int centerX = x + width / 2;
 
-        // Draw vertical line down if needed (for balancing)
+        // Calculate intermediate Y position (scende un po' prima di virare)
+        int intermediateY;
         if (lastBlockBottomY < branchEndY) {
-            g2d.drawLine(lastBlockCenterX, lastBlockBottomY, lastBlockCenterX, branchEndY);
+            intermediateY = branchEndY;
+        } else {
+            intermediateY = lastBlockBottomY + 20; // Scende 20px dal blocco
         }
 
-        // Draw orthogonal line to merge point (only right angles)
-        g2d.drawLine(lastBlockCenterX, branchEndY, lastBlockCenterX, mergePointY);
-        g2d.drawLine(lastBlockCenterX, mergePointY, centerX, mergePointY);
+        // 1. Scende verticalmente dal blocco
+        g2d.drawLine(lastBlockCenterX, lastBlockBottomY, lastBlockCenterX, intermediateY);
+
+        // 2. Va orizzontalmente verso il centro
+        g2d.drawLine(lastBlockCenterX, intermediateY, centerX, intermediateY);
+
+        // 3. Scende verticalmente fino al merge point
+        g2d.drawLine(centerX, intermediateY, centerX, mergePointY);
     }
 
     private FlowBlock findLastBlock(FlowBlock block) {
