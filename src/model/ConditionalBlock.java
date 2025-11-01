@@ -174,18 +174,17 @@ public class ConditionalBlock extends FlowBlock {
             g2d.setColor(new Color(0, 150, 0));
             drawBranchToMerge(g2d, trueBranch, trueBranchEndY);
         } else {
-            // Direct orthogonal line to merge point (empty branch)
+            // Direct orthogonal line to merge point (empty TRUE branch)
             int startX = x + width;
             int startY = y + height / 2;
             int targetX = centerX + BRANCH_HORIZONTAL_OFFSET;
-            int lineEndY = trueBranchEndY + 20; // Scende 20px extra (come per i branch con blocchi)
 
             // 1. Orizzontale verso destra
             g2d.drawLine(startX, startY, targetX, startY);
-            // 2. Verticale giù fino a trueBranchEndY + 20
-            g2d.drawLine(targetX, startY, targetX, lineEndY);
-            // 3. Orizzontale verso centro (merge point è a questa altezza)
-            g2d.drawLine(targetX, lineEndY, centerX, lineEndY);
+            // 2. Verticale giù fino al MERGE POINT (bilanciamento!)
+            g2d.drawLine(targetX, startY, targetX, mergePointY);
+            // 3. Orizzontale verso centro (al livello del merge point)
+            g2d.drawLine(targetX, mergePointY, centerX, mergePointY);
 
             g2d.setColor(new Color(0, 100, 0));
             g2d.drawString("True", startX + 5, startY - 5);
@@ -215,18 +214,17 @@ public class ConditionalBlock extends FlowBlock {
             g2d.setColor(new Color(150, 0, 0));
             drawBranchToMerge(g2d, falseBranch, falseBranchEndY);
         } else {
-            // Direct orthogonal line to merge point (empty branch)
+            // Direct orthogonal line to merge point (empty FALSE branch)
             int startX = x;
             int startY = y + height / 2;
             int targetX = centerX - BRANCH_HORIZONTAL_OFFSET;
-            int lineEndY = falseBranchEndY + 20; // Scende 20px extra (come per i branch con blocchi)
 
             // 1. Orizzontale verso sinistra
             g2d.drawLine(startX, startY, targetX, startY);
-            // 2. Verticale giù fino a falseBranchEndY + 20
-            g2d.drawLine(targetX, startY, targetX, lineEndY);
-            // 3. Orizzontale verso centro (merge point è a questa altezza)
-            g2d.drawLine(targetX, lineEndY, centerX, lineEndY);
+            // 2. Verticale giù fino al MERGE POINT (bilanciamento!)
+            g2d.drawLine(targetX, startY, targetX, mergePointY);
+            // 3. Orizzontale verso centro (al livello del merge point)
+            g2d.drawLine(targetX, mergePointY, centerX, mergePointY);
 
             g2d.setColor(new Color(100, 0, 0));
             g2d.drawString("False", startX - 45, startY - 5);
