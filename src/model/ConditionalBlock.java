@@ -84,8 +84,9 @@ public class ConditionalBlock extends FlowBlock {
             falseBranchEndY = startY + height + VERTICAL_SPACING;
         }
 
-        // Merge point is at the end of the longest branch
-        mergePointY = startY + height + VERTICAL_SPACING + maxBranchHeight;
+        // Merge point is at the end of the longest branch PLUS the vertical line (20px)
+        // This way the merge point aligns with the end of the vertical line from blocks
+        mergePointY = startY + height + VERTICAL_SPACING + maxBranchHeight + 20;
 
         // Position next block after merge point
         if (nextBlock != null) {
@@ -173,14 +174,18 @@ public class ConditionalBlock extends FlowBlock {
             g2d.setColor(new Color(0, 150, 0));
             drawBranchToMerge(g2d, trueBranch, trueBranchEndY);
         } else {
-            // Direct orthogonal line to merge point
+            // Direct orthogonal line to merge point (empty branch)
             int startX = x + width;
             int startY = y + height / 2;
             int targetX = centerX + BRANCH_HORIZONTAL_OFFSET;
+            int lineEndY = trueBranchEndY + 20; // Scende 20px extra (come per i branch con blocchi)
 
+            // 1. Orizzontale verso destra
             g2d.drawLine(startX, startY, targetX, startY);
-            g2d.drawLine(targetX, startY, targetX, trueBranchEndY);
-            g2d.drawLine(targetX, trueBranchEndY, centerX, mergePointY);
+            // 2. Verticale giù fino a trueBranchEndY + 20
+            g2d.drawLine(targetX, startY, targetX, lineEndY);
+            // 3. Orizzontale verso centro (merge point è a questa altezza)
+            g2d.drawLine(targetX, lineEndY, centerX, lineEndY);
 
             g2d.setColor(new Color(0, 100, 0));
             g2d.drawString("True", startX + 5, startY - 5);
@@ -210,14 +215,18 @@ public class ConditionalBlock extends FlowBlock {
             g2d.setColor(new Color(150, 0, 0));
             drawBranchToMerge(g2d, falseBranch, falseBranchEndY);
         } else {
-            // Direct orthogonal line to merge point
+            // Direct orthogonal line to merge point (empty branch)
             int startX = x;
             int startY = y + height / 2;
             int targetX = centerX - BRANCH_HORIZONTAL_OFFSET;
+            int lineEndY = falseBranchEndY + 20; // Scende 20px extra (come per i branch con blocchi)
 
+            // 1. Orizzontale verso sinistra
             g2d.drawLine(startX, startY, targetX, startY);
-            g2d.drawLine(targetX, startY, targetX, falseBranchEndY);
-            g2d.drawLine(targetX, falseBranchEndY, centerX, mergePointY);
+            // 2. Verticale giù fino a falseBranchEndY + 20
+            g2d.drawLine(targetX, startY, targetX, lineEndY);
+            // 3. Orizzontale verso centro (merge point è a questa altezza)
+            g2d.drawLine(targetX, lineEndY, centerX, lineEndY);
 
             g2d.setColor(new Color(100, 0, 0));
             g2d.drawString("False", startX - 45, startY - 5);
@@ -266,19 +275,19 @@ public class ConditionalBlock extends FlowBlock {
         // Calculate intermediate Y position (scende un po' prima di virare)
         int intermediateY;
         if (lastBlockBottomY < branchEndY) {
-            intermediateY = branchEndY;
+            intermediateY = branchEndY + 20; // Anche per i rami corti, aggiungi 20px
         } else {
             intermediateY = lastBlockBottomY + 20; // Scende 20px dal blocco
         }
 
-        // 1. Scende verticalmente dal blocco
+        // 1. Scende verticalmente dal blocco (20px)
         g2d.drawLine(lastBlockCenterX, lastBlockBottomY, lastBlockCenterX, intermediateY);
 
-        // 2. Va orizzontalmente verso il centro
+        // 2. Va orizzontalmente verso il centro AL LIVELLO DEL MERGE POINT
+        // Il merge point è già a questa altezza (intermediateY), quindi linea orizzontale diretta
         g2d.drawLine(lastBlockCenterX, intermediateY, centerX, intermediateY);
 
-        // 3. Scende verticalmente fino al merge point
-        g2d.drawLine(centerX, intermediateY, centerX, mergePointY);
+        // Note: NO vertical line needed - merge point is AT intermediateY!
     }
 
     private FlowBlock findLastBlock(FlowBlock block) {
