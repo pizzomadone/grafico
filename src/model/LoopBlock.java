@@ -107,10 +107,10 @@ public class LoopBlock extends FlowBlock {
         // Draw loop body connection
         if (loopBody != null) {
             g2d.setColor(new Color(0, 150, 0));
-            g2d.drawLine(centerX, y + height,
-                        loopBody.getX() + loopBody.getWidth() / 2, loopBody.getY());
-            drawArrow(g2d, centerX, y + height,
-                     loopBody.getX() + loopBody.getWidth() / 2, loopBody.getY());
+            int targetX = loopBody.getX() + loopBody.getWidth() / 2;
+            int targetY = loopBody.getY();
+
+            drawOrthogonalConnection(g2d, centerX, y + height, targetX, targetY);
 
             loopBody.draw(g2d);
 

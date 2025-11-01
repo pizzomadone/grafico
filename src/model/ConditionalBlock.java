@@ -148,64 +148,91 @@ public class ConditionalBlock extends FlowBlock {
         g2d.setStroke(new BasicStroke(2));
 
         int centerX = x + width / 2;
-        int bottomY = y + height;
 
-        // Draw true branch (right)
+        // Draw true branch (right) with orthogonal lines
         g2d.setColor(new Color(0, 150, 0));
         if (trueBranch != null) {
-            // Line from diamond to first block
-            g2d.drawLine(x + width, y + height / 2, trueBranch.getX() + trueBranch.getWidth() / 2, trueBranch.getY());
-            drawArrow(g2d, x + width, y + height / 2,
-                     trueBranch.getX() + trueBranch.getWidth() / 2, trueBranch.getY());
+            // Orthogonal connection from diamond to first block
+            int startX = x + width;
+            int startY = y + height / 2;
+            int targetX = trueBranch.getX() + trueBranch.getWidth() / 2;
+            int targetY = trueBranch.getY();
 
-            // Line from last block to merge point
-            drawBranchToMerge(g2d, trueBranch, trueBranchEndY);
+            // Right, then down
+            g2d.drawLine(startX, startY, startX + 20, startY);
+            g2d.drawLine(startX + 20, startY, startX + 20, (startY + targetY) / 2);
+            g2d.drawLine(startX + 20, (startY + targetY) / 2, targetX, (startY + targetY) / 2);
+            g2d.drawLine(targetX, (startY + targetY) / 2, targetX, targetY);
+            drawArrowVertical(g2d, targetX, targetY, true);
 
             // Label "True"
             g2d.setColor(new Color(0, 100, 0));
-            g2d.drawString("True", x + width + 5, y + height / 2 - 5);
+            g2d.drawString("True", startX + 5, startY - 5);
+
+            // Line from last block to merge point (orthogonal)
+            g2d.setColor(new Color(0, 150, 0));
+            drawBranchToMerge(g2d, trueBranch, trueBranchEndY);
         } else {
-            // Direct line to merge point
+            // Direct orthogonal line to merge point
+            int startX = x + width;
+            int startY = y + height / 2;
             int targetX = centerX + BRANCH_HORIZONTAL_OFFSET;
-            g2d.drawLine(x + width, y + height / 2, targetX, trueBranchEndY);
+
+            g2d.drawLine(startX, startY, targetX, startY);
+            g2d.drawLine(targetX, startY, targetX, trueBranchEndY);
             g2d.drawLine(targetX, trueBranchEndY, centerX, mergePointY);
+
             g2d.setColor(new Color(0, 100, 0));
-            g2d.drawString("True", x + width + 5, y + height / 2 - 5);
+            g2d.drawString("True", startX + 5, startY - 5);
         }
 
-        // Draw false branch (left)
+        // Draw false branch (left) with orthogonal lines
         g2d.setColor(new Color(150, 0, 0));
         if (falseBranch != null) {
-            // Line from diamond to first block
-            g2d.drawLine(x, y + height / 2, falseBranch.getX() + falseBranch.getWidth() / 2, falseBranch.getY());
-            drawArrow(g2d, x, y + height / 2,
-                     falseBranch.getX() + falseBranch.getWidth() / 2, falseBranch.getY());
+            // Orthogonal connection from diamond to first block
+            int startX = x;
+            int startY = y + height / 2;
+            int targetX = falseBranch.getX() + falseBranch.getWidth() / 2;
+            int targetY = falseBranch.getY();
 
-            // Line from last block to merge point
-            drawBranchToMerge(g2d, falseBranch, falseBranchEndY);
+            // Left, then down
+            g2d.drawLine(startX, startY, startX - 20, startY);
+            g2d.drawLine(startX - 20, startY, startX - 20, (startY + targetY) / 2);
+            g2d.drawLine(startX - 20, (startY + targetY) / 2, targetX, (startY + targetY) / 2);
+            g2d.drawLine(targetX, (startY + targetY) / 2, targetX, targetY);
+            drawArrowVertical(g2d, targetX, targetY, true);
 
             // Label "False"
             g2d.setColor(new Color(100, 0, 0));
-            g2d.drawString("False", x - 40, y + height / 2 - 5);
+            g2d.drawString("False", startX - 45, startY - 5);
+
+            // Line from last block to merge point (orthogonal)
+            g2d.setColor(new Color(150, 0, 0));
+            drawBranchToMerge(g2d, falseBranch, falseBranchEndY);
         } else {
-            // Direct line to merge point
+            // Direct orthogonal line to merge point
+            int startX = x;
+            int startY = y + height / 2;
             int targetX = centerX - BRANCH_HORIZONTAL_OFFSET;
-            g2d.drawLine(x, y + height / 2, targetX, falseBranchEndY);
+
+            g2d.drawLine(startX, startY, targetX, startY);
+            g2d.drawLine(targetX, startY, targetX, falseBranchEndY);
             g2d.drawLine(targetX, falseBranchEndY, centerX, mergePointY);
+
             g2d.setColor(new Color(100, 0, 0));
-            g2d.drawString("False", x - 40, y + height / 2 - 5);
+            g2d.drawString("False", startX - 45, startY - 5);
         }
 
         // Draw merge point circle
         g2d.setColor(Color.BLACK);
         g2d.fillOval(centerX - 6, mergePointY - 6, 12, 12);
 
-        // Draw line from merge point to next block
+        // Draw orthogonal line from merge point to next block
         if (nextBlock != null) {
-            g2d.drawLine(centerX, mergePointY,
-                        nextBlock.getX() + nextBlock.getWidth() / 2, nextBlock.getY());
-            drawArrow(g2d, centerX, mergePointY,
-                     nextBlock.getX() + nextBlock.getWidth() / 2, nextBlock.getY());
+            int targetX = nextBlock.getX() + nextBlock.getWidth() / 2;
+            int targetY = nextBlock.getY();
+
+            drawOrthogonalConnection(g2d, centerX, mergePointY, targetX, targetY);
         }
 
         g2d.setColor(oldColor);
@@ -225,8 +252,9 @@ public class ConditionalBlock extends FlowBlock {
             g2d.drawLine(lastBlockCenterX, lastBlockBottomY, lastBlockCenterX, branchEndY);
         }
 
-        // Draw horizontal line to merge point
-        g2d.drawLine(lastBlockCenterX, branchEndY, centerX, mergePointY);
+        // Draw orthogonal line to merge point (only right angles)
+        g2d.drawLine(lastBlockCenterX, branchEndY, lastBlockCenterX, mergePointY);
+        g2d.drawLine(lastBlockCenterX, mergePointY, centerX, mergePointY);
     }
 
     private FlowBlock findLastBlock(FlowBlock block) {

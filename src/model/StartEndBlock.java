@@ -74,10 +74,10 @@ public class StartEndBlock extends FlowBlock {
         // Draw connection to next block (only for Start)
         if (nextBlock != null && isStart) {
             int centerX = x + width / 2;
-            g2d.drawLine(centerX, y + height,
-                        nextBlock.getX() + nextBlock.getWidth() / 2, nextBlock.getY());
-            drawArrow(g2d, centerX, y + height,
-                     nextBlock.getX() + nextBlock.getWidth() / 2, nextBlock.getY());
+            int targetX = nextBlock.getX() + nextBlock.getWidth() / 2;
+            int targetY = nextBlock.getY();
+
+            drawOrthogonalConnection(g2d, centerX, y + height, targetX, targetY);
 
             nextBlock.draw(g2d);
         }
