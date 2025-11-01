@@ -128,6 +128,32 @@ Quando aggiungi blocchi al ramo destro di un condizionale, il ramo sinistro deve
            └─────────────────┘
 ```
 
+## 📦 Due Versioni Disponibili
+
+Questo progetto include **due implementazioni** con algoritmi di layout diversi:
+
+### 1. Versione Originale (`src/`)
+- Layout ricorsivo manuale
+- Bilanciamento branch implementato con calcolo altezza massima
+- **Ideale per**: diagrammi semplici, editing interattivo
+
+### 2. Versione Sugiyama-style (`src_Sugiyama-style/`)
+- Algoritmo gerarchico Sugiyama con 4 fasi
+- Layout ottimizzato con metodo barycenter
+- **Ideale per**: diagrammi complessi, presentazioni professionali
+
+📖 **Dettagli completi**: Vedi `README_SUGIYAMA.md`
+
+### Build rapido
+
+```bash
+# Versione originale
+./build_original.sh
+
+# Versione Sugiyama
+./build_sugiyama.sh
+```
+
 ## 🚀 Come Usare
 
 ### IMPORTANTE: Versione Semplificata per Eclipse
