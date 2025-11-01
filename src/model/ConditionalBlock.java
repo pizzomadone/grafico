@@ -227,12 +227,19 @@ public class ConditionalBlock extends FlowBlock {
         g2d.setColor(Color.BLACK);
         g2d.fillOval(centerX - 6, mergePointY - 6, 12, 12);
 
-        // Draw orthogonal line from merge point to next block
+        // Draw small vertical line from merge point, then connection to next block
         if (nextBlock != null) {
             int targetX = nextBlock.getX() + nextBlock.getWidth() / 2;
             int targetY = nextBlock.getY();
 
-            drawOrthogonalConnection(g2d, centerX, mergePointY, targetX, targetY);
+            // Small vertical line from merge point (15px down)
+            int lineStartY = mergePointY + 6; // Start after circle radius
+            int lineEndY = lineStartY + 15;   // 15px vertical line
+
+            g2d.drawLine(centerX, lineStartY, centerX, lineEndY);
+
+            // Then orthogonal connection to next block
+            drawOrthogonalConnection(g2d, centerX, lineEndY, targetX, targetY);
         }
 
         g2d.setColor(oldColor);
