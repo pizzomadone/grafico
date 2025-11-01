@@ -16,15 +16,22 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# IDE
+# IDE - IntelliJ
 .idea/
 *.iml
 *.iws
 *.ipr
+
+# IDE - VSCode
 .vscode/
-.settings/
-.classpath
-.project
+
+# IDE - Eclipse (keep base config for easy import)
+# Include: .classpath, .project, .settings/ for Maven integration
+# Ignore only dynamic/generated Eclipse files:
+.settings/org.eclipse.core.resources.prefs
+.settings/org.eclipse.jdt.apt.core.prefs
+bin/
+.metadata/
 
 # OS
 .DS_Store
