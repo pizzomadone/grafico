@@ -165,7 +165,7 @@ public class FlowchartEditorApp extends JFrame {
         } else if (choice == 1) {
             // With start block
             FlowchartManager manager = new FlowchartManager();
-            com.flowchart.model.StartEndBlock start = new com.flowchart.model.StartEndBlock("Start", true);
+            model.StartEndBlock start = new model.StartEndBlock("Start", true);
             manager.setRoot(start);
             manager.recalculateLayout();
             canvas.setFlowchartManager(manager);
