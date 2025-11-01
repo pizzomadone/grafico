@@ -227,19 +227,28 @@ public class ConditionalBlock extends FlowBlock {
         g2d.setColor(Color.BLACK);
         g2d.fillOval(centerX - 6, mergePointY - 6, 12, 12);
 
-        // Draw small vertical line from merge point, then connection to next block
+        // SEMPRE disegna un trattino verticale dopo il merge point
+        int lineStartY = mergePointY + 6;  // Parte dal fondo del cerchio
+        int lineEndY = lineStartY + 30;     // Trattino di 30px (più visibile)
+
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawLine(centerX, lineStartY, centerX, lineEndY);
+
+        // Se c'è un next block, connettilo partendo dal trattino
         if (nextBlock != null) {
             int targetX = nextBlock.getX() + nextBlock.getWidth() / 2;
             int targetY = nextBlock.getY();
 
-            // Small vertical line from merge point (15px down)
-            int lineStartY = mergePointY + 6; // Start after circle radius
-            int lineEndY = lineStartY + 15;   // 15px vertical line
-
-            g2d.drawLine(centerX, lineStartY, centerX, lineEndY);
-
-            // Then orthogonal connection to next block
-            drawOrthogonalConnection(g2d, centerX, lineEndY, targetX, targetY);
+            // Connessione ortogonale dal trattino al next block
+            if (centerX == targetX) {
+                // Se allineati verticalmente, solo linea verticale
+                g2d.drawLine(centerX, lineEndY, centerX, targetY);
+                drawArrowVertical(g2d, centerX, targetY, true);
+            } else {
+                // Se non allineati, usa percorso ortogonale
+                drawOrthogonalConnection(g2d, centerX, lineEndY, targetX, targetY);
+            }
         }
 
         g2d.setColor(oldColor);
