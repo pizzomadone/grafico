@@ -1,4 +1,4 @@
-package com.flowchart.model;
+package model;
 
 import java.awt.*;
 import java.awt.geom.Path2D;

@@ -1,7 +1,7 @@
-package com.flowchart.view;
+package view;
 
-import com.flowchart.layout.FlowchartManager;
-import com.flowchart.model.*;
+import layout.FlowchartManager;
+import model.*;
 
 import javax.swing.*;
 import java.awt.*;

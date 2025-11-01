@@ -130,23 +130,31 @@ Quando aggiungi blocchi al ramo destro di un condizionale, il ramo sinistro deve
 
 ## 🚀 Come Usare
 
-### Compilazione
+### IMPORTANTE: Versione Semplificata per Eclipse
 
-```bash
-mvn clean package
+Questo progetto ora usa una **struttura semplificata** compatibile con Eclipse:
+
+```
+src/
+├── FlowchartEditorApp.java    # Main class
+├── model/                      # Blocchi (7 file)
+├── layout/                     # Manager (1 file)
+└── view/                       # Canvas (1 file)
 ```
 
-### Esecuzione
+### Importazione in Eclipse (RACCOMANDATO)
 
-```bash
-mvn exec:java -Dexec.mainClass="com.flowchart.FlowchartEditorApp"
-```
+1. **File → Import...**
+2. **General → Existing Projects into Workspace**
+3. **Browse** → Seleziona questa cartella
+4. **Finish**
+5. Click destro su `FlowchartEditorApp.java` → **Run As → Java Application**
 
-O esegui il JAR:
+📖 **Guida completa:** Vedi `README_ECLIPSE.md`
 
-```bash
-java -jar target/flowchart-editor-1.0-SNAPSHOT.jar
-```
+### Versione Maven (Opzionale)
+
+Se preferisci usare Maven (per save/load con Gson), vedi il branch con struttura Maven.
 
 ### Utilizzo
 

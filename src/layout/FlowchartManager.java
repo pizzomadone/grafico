@@ -1,6 +1,6 @@
-package com.flowchart.layout;
+package layout;
 
-import com.flowchart.model.*;
+import model.*;
 
 import java.util.ArrayList;
 import java.util.List;

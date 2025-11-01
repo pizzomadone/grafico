@@ -1,20 +1,19 @@
-package com.flowchart.model;
+package model;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Input/Output block (parallelogram) - represents input or output operations.
+ * Process block (rectangle) - represents a process/action.
  */
-public class IOBlock extends FlowBlock {
+public class ProcessBlock extends FlowBlock {
     private static final long serialVersionUID = 1L;
 
     private FlowBlock nextBlock;
-    private static final int SLANT_OFFSET = 15;  // How much the parallelogram slants
 
-    public IOBlock(String io) {
-        super(io);
+    public ProcessBlock(String process) {
+        super(process);
         this.width = 140;
         this.height = 60;
     }
@@ -30,7 +29,7 @@ public class IOBlock extends FlowBlock {
 
     @Override
     public int calculateWidth() {
-        int myWidth = width + SLANT_OFFSET;  // Account for slant
+        int myWidth = width;
         if (nextBlock != null) {
             myWidth = Math.max(myWidth, nextBlock.calculateWidth());
         }
@@ -53,28 +52,14 @@ public class IOBlock extends FlowBlock {
         Color oldColor = g2d.getColor();
         Stroke oldStroke = g2d.getStroke();
 
-        // Create parallelogram
-        int[] xPoints = {
-            x + SLANT_OFFSET,           // Top left
-            x + width + SLANT_OFFSET,   // Top right
-            x + width,                  // Bottom right
-            x                           // Bottom left
-        };
-        int[] yPoints = {
-            y,
-            y,
-            y + height,
-            y + height
-        };
-
-        // Fill parallelogram
-        g2d.setColor(new Color(255, 220, 220));
-        g2d.fillPolygon(xPoints, yPoints, 4);
+        // Fill rectangle
+        g2d.setColor(new Color(200, 220, 255));
+        g2d.fillRect(x, y, width, height);
 
         // Draw border
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2));
-        g2d.drawPolygon(xPoints, yPoints, 4);
+        g2d.drawRect(x, y, width, height);
 
         // Draw text
         g2d.setColor(Color.BLACK);
@@ -121,7 +106,7 @@ public class IOBlock extends FlowBlock {
 
     @Override
     public FlowBlock clone() {
-        IOBlock cloned = new IOBlock(this.text);
+        ProcessBlock cloned = new ProcessBlock(this.text);
         if (nextBlock != null) {
             cloned.nextBlock = nextBlock.clone();
         }

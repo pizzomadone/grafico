@@ -1,27 +1,29 @@
-package com.flowchart.model;
+package model;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Process block (rectangle) - represents a process/action.
+ * Start/End block (rounded rectangle/oval) - represents start or end of flowchart.
  */
-public class ProcessBlock extends FlowBlock {
+public class StartEndBlock extends FlowBlock {
     private static final long serialVersionUID = 1L;
 
     private FlowBlock nextBlock;
+    private boolean isStart;  // true for Start, false for End
 
-    public ProcessBlock(String process) {
-        super(process);
-        this.width = 140;
-        this.height = 60;
+    public StartEndBlock(String text, boolean isStart) {
+        super(text);
+        this.isStart = isStart;
+        this.width = 120;
+        this.height = 50;
     }
 
     @Override
     public int calculateHeight() {
         int myHeight = height;
-        if (nextBlock != null) {
+        if (nextBlock != null && isStart) {
             myHeight += VERTICAL_SPACING + nextBlock.calculateHeight();
         }
         return myHeight;
@@ -30,7 +32,7 @@ public class ProcessBlock extends FlowBlock {
     @Override
     public int calculateWidth() {
         int myWidth = width;
-        if (nextBlock != null) {
+        if (nextBlock != null && isStart) {
             myWidth = Math.max(myWidth, nextBlock.calculateWidth());
         }
         return myWidth;
@@ -41,7 +43,7 @@ public class ProcessBlock extends FlowBlock {
         this.x = startX;
         this.y = startY;
 
-        if (nextBlock != null) {
+        if (nextBlock != null && isStart) {
             nextBlock.layout(startX, startY + height + VERTICAL_SPACING);
             nextBlock.setParent(this);
         }
@@ -52,21 +54,25 @@ public class ProcessBlock extends FlowBlock {
         Color oldColor = g2d.getColor();
         Stroke oldStroke = g2d.getStroke();
 
-        // Fill rectangle
-        g2d.setColor(new Color(200, 220, 255));
-        g2d.fillRect(x, y, width, height);
+        // Fill rounded rectangle
+        if (isStart) {
+            g2d.setColor(new Color(200, 255, 200));
+        } else {
+            g2d.setColor(new Color(255, 200, 200));
+        }
+        g2d.fillRoundRect(x, y, width, height, 40, 40);
 
         // Draw border
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2));
-        g2d.drawRect(x, y, width, height);
+        g2d.drawRoundRect(x, y, width, height, 40, 40);
 
         // Draw text
         g2d.setColor(Color.BLACK);
         drawCenteredText(g2d, text, x, y, width, height);
 
-        // Draw connection to next block
-        if (nextBlock != null) {
+        // Draw connection to next block (only for Start)
+        if (nextBlock != null && isStart) {
             int centerX = x + width / 2;
             g2d.drawLine(centerX, y + height,
                         nextBlock.getX() + nextBlock.getWidth() / 2, nextBlock.getY());
@@ -83,7 +89,7 @@ public class ProcessBlock extends FlowBlock {
     @Override
     public List<FlowBlock> getChildren() {
         List<FlowBlock> children = new ArrayList<>();
-        if (nextBlock != null) {
+        if (nextBlock != null && isStart) {
             children.add(nextBlock);
         }
         return children;
@@ -93,7 +99,7 @@ public class ProcessBlock extends FlowBlock {
     public List<ConnectionPoint> getConnectionPoints() {
         List<ConnectionPoint> points = new ArrayList<>();
 
-        if (nextBlock == null) {
+        if (nextBlock == null && isStart) {
             int centerX = x + width / 2;
             points.add(new ConnectionPoint(
                 centerX - 10, y + height - 10, 20, 20,
@@ -106,8 +112,8 @@ public class ProcessBlock extends FlowBlock {
 
     @Override
     public FlowBlock clone() {
-        ProcessBlock cloned = new ProcessBlock(this.text);
-        if (nextBlock != null) {
+        StartEndBlock cloned = new StartEndBlock(this.text, this.isStart);
+        if (nextBlock != null && isStart) {
             cloned.nextBlock = nextBlock.clone();
         }
         return cloned;
@@ -123,5 +129,13 @@ public class ProcessBlock extends FlowBlock {
         if (nextBlock != null) {
             nextBlock.setParent(this);
         }
+    }
+
+    public boolean isStart() {
+        return isStart;
+    }
+
+    public void setStart(boolean start) {
+        isStart = start;
     }
 }

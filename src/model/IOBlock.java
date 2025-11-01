@@ -1,29 +1,28 @@
-package com.flowchart.model;
+package model;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Start/End block (rounded rectangle/oval) - represents start or end of flowchart.
+ * Input/Output block (parallelogram) - represents input or output operations.
  */
-public class StartEndBlock extends FlowBlock {
+public class IOBlock extends FlowBlock {
     private static final long serialVersionUID = 1L;
 
     private FlowBlock nextBlock;
-    private boolean isStart;  // true for Start, false for End
+    private static final int SLANT_OFFSET = 15;  // How much the parallelogram slants
 
-    public StartEndBlock(String text, boolean isStart) {
-        super(text);
-        this.isStart = isStart;
-        this.width = 120;
-        this.height = 50;
+    public IOBlock(String io) {
+        super(io);
+        this.width = 140;
+        this.height = 60;
     }
 
     @Override
     public int calculateHeight() {
         int myHeight = height;
-        if (nextBlock != null && isStart) {
+        if (nextBlock != null) {
             myHeight += VERTICAL_SPACING + nextBlock.calculateHeight();
         }
         return myHeight;
@@ -31,8 +30,8 @@ public class StartEndBlock extends FlowBlock {
 
     @Override
     public int calculateWidth() {
-        int myWidth = width;
-        if (nextBlock != null && isStart) {
+        int myWidth = width + SLANT_OFFSET;  // Account for slant
+        if (nextBlock != null) {
             myWidth = Math.max(myWidth, nextBlock.calculateWidth());
         }
         return myWidth;
@@ -43,7 +42,7 @@ public class StartEndBlock extends FlowBlock {
         this.x = startX;
         this.y = startY;
 
-        if (nextBlock != null && isStart) {
+        if (nextBlock != null) {
             nextBlock.layout(startX, startY + height + VERTICAL_SPACING);
             nextBlock.setParent(this);
         }
@@ -54,25 +53,35 @@ public class StartEndBlock extends FlowBlock {
         Color oldColor = g2d.getColor();
         Stroke oldStroke = g2d.getStroke();
 
-        // Fill rounded rectangle
-        if (isStart) {
-            g2d.setColor(new Color(200, 255, 200));
-        } else {
-            g2d.setColor(new Color(255, 200, 200));
-        }
-        g2d.fillRoundRect(x, y, width, height, 40, 40);
+        // Create parallelogram
+        int[] xPoints = {
+            x + SLANT_OFFSET,           // Top left
+            x + width + SLANT_OFFSET,   // Top right
+            x + width,                  // Bottom right
+            x                           // Bottom left
+        };
+        int[] yPoints = {
+            y,
+            y,
+            y + height,
+            y + height
+        };
+
+        // Fill parallelogram
+        g2d.setColor(new Color(255, 220, 220));
+        g2d.fillPolygon(xPoints, yPoints, 4);
 
         // Draw border
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2));
-        g2d.drawRoundRect(x, y, width, height, 40, 40);
+        g2d.drawPolygon(xPoints, yPoints, 4);
 
         // Draw text
         g2d.setColor(Color.BLACK);
         drawCenteredText(g2d, text, x, y, width, height);
 
-        // Draw connection to next block (only for Start)
-        if (nextBlock != null && isStart) {
+        // Draw connection to next block
+        if (nextBlock != null) {
             int centerX = x + width / 2;
             g2d.drawLine(centerX, y + height,
                         nextBlock.getX() + nextBlock.getWidth() / 2, nextBlock.getY());
@@ -89,7 +98,7 @@ public class StartEndBlock extends FlowBlock {
     @Override
     public List<FlowBlock> getChildren() {
         List<FlowBlock> children = new ArrayList<>();
-        if (nextBlock != null && isStart) {
+        if (nextBlock != null) {
             children.add(nextBlock);
         }
         return children;
@@ -99,7 +108,7 @@ public class StartEndBlock extends FlowBlock {
     public List<ConnectionPoint> getConnectionPoints() {
         List<ConnectionPoint> points = new ArrayList<>();
 
-        if (nextBlock == null && isStart) {
+        if (nextBlock == null) {
             int centerX = x + width / 2;
             points.add(new ConnectionPoint(
                 centerX - 10, y + height - 10, 20, 20,
@@ -112,8 +121,8 @@ public class StartEndBlock extends FlowBlock {
 
     @Override
     public FlowBlock clone() {
-        StartEndBlock cloned = new StartEndBlock(this.text, this.isStart);
-        if (nextBlock != null && isStart) {
+        IOBlock cloned = new IOBlock(this.text);
+        if (nextBlock != null) {
             cloned.nextBlock = nextBlock.clone();
         }
         return cloned;
@@ -129,13 +138,5 @@ public class StartEndBlock extends FlowBlock {
         if (nextBlock != null) {
             nextBlock.setParent(this);
         }
-    }
-
-    public boolean isStart() {
-        return isStart;
-    }
-
-    public void setStart(boolean start) {
-        isStart = start;
     }
 }
