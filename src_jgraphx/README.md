@@ -66,7 +66,7 @@ src_jgraphx/
 - ✅ **Tipi di blocchi**:
   - Process (Rettangolo blu)
   - Conditional (Diamante giallo)
-  - I/O (Parallelogramma verde)
+  - I/O (Cilindro verde - rappresenta storage/input-output)
   - Loop (Esagono arancione)
   - Start/End (Rettangolo arrotondato grigio)
 - ✅ **Layout automatico** - Layout gerarchico automatico

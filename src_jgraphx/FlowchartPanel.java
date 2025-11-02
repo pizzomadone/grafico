@@ -85,9 +85,9 @@ public class FlowchartPanel extends JPanel {
         conditionalStyle.put(mxConstants.STYLE_FONTSIZE, 12);
         stylesheet.putCellStyle(CONDITIONAL, conditionalStyle);
 
-        // I/O block style (parallelogram, green)
+        // I/O block style (cylinder for storage/input-output, green)
         Map<String, Object> ioStyle = new HashMap<>();
-        ioStyle.put(mxConstants.STYLE_SHAPE, mxConstants.SHAPE_PARALLELOGRAM);
+        ioStyle.put(mxConstants.STYLE_SHAPE, mxConstants.SHAPE_CYLINDER);
         ioStyle.put(mxConstants.STYLE_FILLCOLOR, "#C8FFC8");
         ioStyle.put(mxConstants.STYLE_STROKECOLOR, "#000000");
         ioStyle.put(mxConstants.STYLE_STROKEWIDTH, 2);
