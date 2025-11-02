@@ -55,7 +55,7 @@ public class FlowchartPanel extends JPanel {
         graph.setCellsEditable(true);
         graph.setConnectableEdges(false);
         graph.setCellsDisconnectable(false);
-        graph.setCellsMovable(true);
+        graph.setCellsMovable(false);  // FIXED: Blocks are now non-movable
 
         // Setup custom styles for flowchart blocks
         setupStyles();
@@ -146,24 +146,32 @@ public class FlowchartPanel extends JPanel {
         mergeStyle.put(mxConstants.STYLE_FONTSIZE, 1);
         stylesheet.putCellStyle(MERGE, mergeStyle);
 
-        // Edge styles
+        // Edge styles - THICKER for better visibility
         Map<String, Object> edgeStyle = new HashMap<>();
         edgeStyle.put(mxConstants.STYLE_STROKECOLOR, "#000000");
-        edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 2);
+        edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 3);  // Increased from 2 to 3
         edgeStyle.put(mxConstants.STYLE_ENDARROW, mxConstants.ARROW_CLASSIC);
         edgeStyle.put(mxConstants.STYLE_EDGE, mxConstants.EDGESTYLE_ORTHOGONAL);
         stylesheet.setDefaultEdgeStyle(edgeStyle);
 
-        // True branch edge style (green)
+        // True branch edge style (green) - exits from RIGHT side of diamond
         Map<String, Object> trueBranchStyle = new HashMap<>(edgeStyle);
         trueBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#009600");
         trueBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#009600");
+        trueBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 3);
+        trueBranchStyle.put(mxConstants.STYLE_EXIT_X, 1.0);  // Exit from right
+        trueBranchStyle.put(mxConstants.STYLE_EXIT_Y, 0.5);  // Middle of right side
+        trueBranchStyle.put(mxConstants.STYLE_EXIT_PERIMETER, 0);
         stylesheet.putCellStyle("TRUE_BRANCH", trueBranchStyle);
 
-        // False branch edge style (red)
+        // False branch edge style (red) - exits from LEFT side of diamond
         Map<String, Object> falseBranchStyle = new HashMap<>(edgeStyle);
         falseBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#960000");
         falseBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#960000");
+        falseBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 3);
+        falseBranchStyle.put(mxConstants.STYLE_EXIT_X, 0.0);  // Exit from left
+        falseBranchStyle.put(mxConstants.STYLE_EXIT_Y, 0.5);  // Middle of left side
+        falseBranchStyle.put(mxConstants.STYLE_EXIT_PERIMETER, 0);
         stylesheet.putCellStyle("FALSE_BRANCH", falseBranchStyle);
     }
 
@@ -339,9 +347,9 @@ public class FlowchartPanel extends JPanel {
         // Connect: source -> conditional
         graph.insertEdge(parent, null, "", source, conditional);
 
-        // Create TRUE and FALSE branches to merge point
-        Object trueBranch = graph.insertEdge(parent, null, "True", conditional, mergePoint, "TRUE_BRANCH");
-        Object falseBranch = graph.insertEdge(parent, null, "False", conditional, mergePoint, "FALSE_BRANCH");
+        // Create TRUE and FALSE branches to merge point (SI/NO labels in Italian)
+        Object trueBranch = graph.insertEdge(parent, null, "Sì", conditional, mergePoint, "TRUE_BRANCH");
+        Object falseBranch = graph.insertEdge(parent, null, "No", conditional, mergePoint, "FALSE_BRANCH");
 
         // Connect: mergePoint -> target
         graph.insertEdge(parent, null, "", mergePoint, target);
@@ -354,8 +362,71 @@ public class FlowchartPanel extends JPanel {
         Object parent = graph.getDefaultParent();
         mxHierarchicalLayout layout = new mxHierarchicalLayout(graph);
         layout.setInterRankCellSpacing(60);
-        layout.setIntraCellSpacing(50);
+        layout.setIntraCellSpacing(80);  // More space between branches
         layout.execute(parent);
+
+        // Center the graph in viewport
+        centerGraph();
+    }
+
+    /**
+     * Center the graph in the viewport
+     */
+    private void centerGraph() {
+        // Get the bounds of all cells
+        Object[] cells = graph.getChildCells(graph.getDefaultParent());
+        if (cells.length == 0) return;
+
+        // Get viewport dimensions
+        Dimension viewportSize = graphComponent.getViewport().getSize();
+
+        // Calculate graph bounds
+        mxCell firstCell = (mxCell) cells[0];
+        double minX = firstCell.getGeometry().getX();
+        double maxX = minX + firstCell.getGeometry().getWidth();
+        double minY = firstCell.getGeometry().getY();
+        double maxY = minY + firstCell.getGeometry().getHeight();
+
+        for (Object cell : cells) {
+            if (cell instanceof mxCell && ((mxCell) cell).isVertex()) {
+                mxCell mxCell = (mxCell) cell;
+                mxGeometry geo = mxCell.getGeometry();
+                if (geo != null) {
+                    minX = Math.min(minX, geo.getX());
+                    maxX = Math.max(maxX, geo.getX() + geo.getWidth());
+                    minY = Math.min(minY, geo.getY());
+                    maxY = Math.max(maxY, geo.getY() + geo.getHeight());
+                }
+            }
+        }
+
+        double graphWidth = maxX - minX;
+        double graphHeight = maxY - minY;
+
+        // Calculate offset to center
+        double offsetX = (viewportSize.width - graphWidth) / 2 - minX;
+        double offsetY = 50; // Keep some margin from top
+
+        // Move all cells
+        graph.getModel().beginUpdate();
+        try {
+            for (Object cell : cells) {
+                if (cell instanceof mxCell && ((mxCell) cell).isVertex()) {
+                    mxCell mxCell = (mxCell) cell;
+                    mxGeometry geo = mxCell.getGeometry();
+                    if (geo != null) {
+                        geo = (mxGeometry) geo.clone();
+                        geo.setX(geo.getX() + offsetX);
+                        geo.setY(geo.getY() + offsetY);
+                        graph.getModel().setGeometry(cell, geo);
+                    }
+                }
+            }
+        } finally {
+            graph.getModel().endUpdate();
+        }
+
+        graphComponent.refresh();
     }
 
     /**
@@ -537,12 +608,12 @@ public class FlowchartPanel extends JPanel {
 
             // True branch
             Object processTrue = graph.insertVertex(parent, null, "result = n * 2", 0, 0, 140, 60, PROCESS);
-            graph.insertEdge(parent, null, "True", condition, processTrue, "TRUE_BRANCH");
+            graph.insertEdge(parent, null, "Sì", condition, processTrue, "TRUE_BRANCH");
             graph.insertEdge(parent, null, "", processTrue, mergePoint);
 
             // False branch
             Object processFalse = graph.insertVertex(parent, null, "result = 0", 0, 0, 140, 60, PROCESS);
-            graph.insertEdge(parent, null, "False", condition, processFalse, "FALSE_BRANCH");
+            graph.insertEdge(parent, null, "No", condition, processFalse, "FALSE_BRANCH");
             graph.insertEdge(parent, null, "", processFalse, mergePoint);
 
             // After merge
@@ -633,23 +704,23 @@ public class FlowchartPanel extends JPanel {
 
             // True branch - nested condition
             Object innerCond = graph.insertVertex(parent, null, "y > 0?", 0, 0, 120, 80, CONDITIONAL);
-            graph.insertEdge(parent, null, "True", outerCond, innerCond, "TRUE_BRANCH");
+            graph.insertEdge(parent, null, "Sì", outerCond, innerCond, "TRUE_BRANCH");
 
             Object innerMerge = graph.insertVertex(parent, null, "", 0, 0, 15, 15, MERGE);
 
             Object innerTrue = graph.insertVertex(parent, null, "result = x + y", 0, 0, 140, 60, PROCESS);
-            graph.insertEdge(parent, null, "True", innerCond, innerTrue, "TRUE_BRANCH");
+            graph.insertEdge(parent, null, "Sì", innerCond, innerTrue, "TRUE_BRANCH");
             graph.insertEdge(parent, null, "", innerTrue, innerMerge);
 
             Object innerFalse = graph.insertVertex(parent, null, "result = x - y", 0, 0, 140, 60, PROCESS);
-            graph.insertEdge(parent, null, "False", innerCond, innerFalse, "FALSE_BRANCH");
+            graph.insertEdge(parent, null, "No", innerCond, innerFalse, "FALSE_BRANCH");
             graph.insertEdge(parent, null, "", innerFalse, innerMerge);
 
             graph.insertEdge(parent, null, "", innerMerge, outerMerge);
 
             // False branch
             Object outerFalse = graph.insertVertex(parent, null, "result = 0", 0, 0, 140, 60, PROCESS);
-            graph.insertEdge(parent, null, "False", outerCond, outerFalse, "FALSE_BRANCH");
+            graph.insertEdge(parent, null, "No", outerCond, outerFalse, "FALSE_BRANCH");
             graph.insertEdge(parent, null, "", outerFalse, outerMerge);
 
             // After merge

@@ -248,9 +248,9 @@ public class FlowchartEditorApp extends JFrame {
                 "NAVIGATION\n" +
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                 "• Mouse wheel → Zoom in/out\n" +
-                "• Drag blocks → Move them manually\n" +
                 "• Ctrl+Plus/Minus → Zoom in/out\n" +
-                "• Ctrl+0 → Reset zoom\n\n" +
+                "• Ctrl+0 → Reset zoom\n" +
+                "• Blocks are FIXED (cannot be moved manually)\n\n" +
                 "KEYBOARD SHORTCUTS\n" +
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                 "• Ctrl+N → New flowchart\n" +
