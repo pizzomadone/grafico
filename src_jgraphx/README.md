@@ -2,36 +2,61 @@
 
 Questa è una versione del Flowchart Editor che usa **JGraphX** (JGraph 6) e **solo Swing** (no JavaFX).
 
-## Installazione in Eclipse
+## ⚠️ IMPORTANTE: Se ottieni errori NoClassDefFoundError
 
-### Passo 1: Importare la libreria JGraphX
+Se ottieni l'errore `NoClassDefFoundError: com/mxgraph/swing/mxGraphComponent`,
+**leggi il file `INSTALLAZIONE_ECLIPSE.md`** per istruzioni dettagliate!
 
-1. Assicurati di aver già scaricato la libreria JGraphX (jgraphx.jar)
-2. In Eclipse, fai clic destro sul progetto → **Build Path** → **Configure Build Path**
-3. Vai alla tab **Libraries**
-4. Clicca **Add External JARs...** (o **Add JARs...** se il file è già nel progetto)
-5. Seleziona il file `jgraphx.jar`
-6. Clicca **Apply and Close**
+## Installazione Rapida in Eclipse
 
-### Passo 2: Copiare la cartella src_jgraphx
+### Passo 0: TEST PRIMA DI TUTTO! ⭐
 
-1. Copia l'intera cartella `src_jgraphx` nel tuo progetto Eclipse
-2. Eclipse dovrebbe riconoscere automaticamente i file `.java`
-3. Se non vengono riconosciuti, fai clic destro sulla cartella → **Build Path** → **Use as Source Folder**
+**ESEGUI PRIMA IL TEST** per verificare che JGraphX sia configurato:
+1. Apri il file `TestJGraphX.java`
+2. Fai clic destro → **Run As** → **Java Application**
+3. Se vedi "✓✓✓ ALL TESTS PASSED!" → JGraphX funziona! Vai al Passo 3
+4. Se ottieni errori → Segui il Passo 1
 
-### Passo 3: Eseguire il programma
+### Passo 1: Configurare src_jgraphx come Source Folder
+
+1. In Eclipse, fai clic destro sulla cartella `src_jgraphx`
+2. Seleziona **Build Path** → **Use as Source Folder**
+
+### Passo 2: Verificare che JGraphX sia nel Build Path
+
+1. Fai clic destro sul progetto → **Properties**
+2. Vai a **Java Build Path** → tab **Libraries**
+3. Verifica che `jgraphx.jar` sia presente
+4. Se NON c'è:
+   - Clicca **Add External JARs...** (o **Add JARs...** se è già nel progetto)
+   - Seleziona il file `jgraphx.jar`
+   - Clicca **Apply and Close**
+
+### Passo 3: Pulire e Ricompilare
+
+1. Menu **Project** → **Clean...**
+2. Seleziona il progetto
+3. Click **OK**
+
+### Passo 4: Eseguire il programma
 
 1. Apri il file `FlowchartEditorApp.java`
 2. Fai clic destro → **Run As** → **Java Application**
 3. L'applicazione dovrebbe partire!
 
+### 🔧 Problemi?
+
+Se hai problemi, leggi **`INSTALLAZIONE_ECLIPSE.md`** per istruzioni dettagliate e troubleshooting!
+
 ## Struttura del Progetto
 
 ```
 src_jgraphx/
-├── FlowchartEditorApp.java   # Applicazione principale con menu e toolbar
-├── FlowchartPanel.java        # Pannello con JGraphX per visualizzare il flowchart
-└── README.md                  # Questo file
+├── FlowchartEditorApp.java        # Applicazione principale con menu e toolbar
+├── FlowchartPanel.java            # Pannello con JGraphX per visualizzare il flowchart
+├── TestJGraphX.java               # ⭐ Test per verificare che JGraphX funzioni
+├── README.md                      # Questo file (guida rapida)
+└── INSTALLAZIONE_ECLIPSE.md       # Guida dettagliata e troubleshooting
 ```
 
 ## Caratteristiche
