@@ -26,6 +26,10 @@ public class FlowchartPanel extends JPanel {
     private mxGraph graph;
     private mxGraphComponent graphComponent;
 
+    // Track Start and End cells
+    private Object startCell;
+    private Object endCell;
+
     // Block type constants
     public static final String PROCESS = "PROCESS";
     public static final String CONDITIONAL = "CONDITIONAL";
@@ -66,9 +70,10 @@ public class FlowchartPanel extends JPanel {
         graphComponent.getViewport().setOpaque(true);
         graphComponent.getViewport().setBackground(Color.WHITE);
 
-        // Enable grid
+        // Enable grid with better visibility
         graphComponent.setGridVisible(true);
-        graphComponent.setGridStyle(mxGraphComponent.GRID_STYLE_DOT);
+        graphComponent.setGridStyle(mxGraphComponent.GRID_STYLE_LINE);  // Changed to LINE for better visibility
+        graphComponent.setGridColor(new Color(230, 230, 230));  // Light gray grid
 
         // Setup mouse listeners for edge clicking
         setupMouseListeners();
@@ -146,19 +151,24 @@ public class FlowchartPanel extends JPanel {
         mergeStyle.put(mxConstants.STYLE_FONTSIZE, 1);
         stylesheet.putCellStyle(MERGE, mergeStyle);
 
-        // Edge styles - THICKER for better visibility
+        // Edge styles - MUCH THICKER for maximum visibility
         Map<String, Object> edgeStyle = new HashMap<>();
         edgeStyle.put(mxConstants.STYLE_STROKECOLOR, "#000000");
-        edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 3);  // Increased from 2 to 3
+        edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 4);  // Increased to 4 for maximum visibility
         edgeStyle.put(mxConstants.STYLE_ENDARROW, mxConstants.ARROW_CLASSIC);
         edgeStyle.put(mxConstants.STYLE_EDGE, mxConstants.EDGESTYLE_ORTHOGONAL);
+        edgeStyle.put(mxConstants.STYLE_FONTSIZE, 14);  // Larger font for labels
+        edgeStyle.put(mxConstants.STYLE_FONTCOLOR, "#000000");
+        edgeStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);  // Bold labels
         stylesheet.setDefaultEdgeStyle(edgeStyle);
 
         // True branch edge style (green) - exits from RIGHT side of diamond
         Map<String, Object> trueBranchStyle = new HashMap<>(edgeStyle);
-        trueBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#009600");
-        trueBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#009600");
-        trueBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 3);
+        trueBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#00AA00");  // Brighter green
+        trueBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#00AA00");
+        trueBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 4);
+        trueBranchStyle.put(mxConstants.STYLE_FONTSIZE, 16);  // Even larger for branch labels
+        trueBranchStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);
         trueBranchStyle.put(mxConstants.STYLE_EXIT_X, 1.0);  // Exit from right
         trueBranchStyle.put(mxConstants.STYLE_EXIT_Y, 0.5);  // Middle of right side
         trueBranchStyle.put(mxConstants.STYLE_EXIT_PERIMETER, 0);
@@ -166,9 +176,11 @@ public class FlowchartPanel extends JPanel {
 
         // False branch edge style (red) - exits from LEFT side of diamond
         Map<String, Object> falseBranchStyle = new HashMap<>(edgeStyle);
-        falseBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#960000");
-        falseBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#960000");
-        falseBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 3);
+        falseBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#CC0000");  // Brighter red
+        falseBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#CC0000");
+        falseBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 4);
+        falseBranchStyle.put(mxConstants.STYLE_FONTSIZE, 16);  // Even larger for branch labels
+        falseBranchStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);
         falseBranchStyle.put(mxConstants.STYLE_EXIT_X, 0.0);  // Exit from left
         falseBranchStyle.put(mxConstants.STYLE_EXIT_Y, 0.5);  // Middle of left side
         falseBranchStyle.put(mxConstants.STYLE_EXIT_PERIMETER, 0);
@@ -205,13 +217,13 @@ public class FlowchartPanel extends JPanel {
         graph.getModel().beginUpdate();
         try {
             // Create Start block
-            Object start = graph.insertVertex(parent, "start", "Start", 300, 50, 120, 50, START);
+            startCell = graph.insertVertex(parent, "start", "Start", 300, 50, 120, 50, START);
 
             // Create End block
-            Object end = graph.insertVertex(parent, "end", "End", 300, 200, 120, 50, END);
+            endCell = graph.insertVertex(parent, "end", "End", 300, 200, 120, 50, END);
 
             // Connect them
-            graph.insertEdge(parent, null, "", start, end);
+            graph.insertEdge(parent, null, "", startCell, endCell);
 
             // Apply layout
             applyHierarchicalLayout();
@@ -373,60 +385,66 @@ public class FlowchartPanel extends JPanel {
      * Center the graph in the viewport
      */
     private void centerGraph() {
-        // Get the bounds of all cells
-        Object[] cells = graph.getChildCells(graph.getDefaultParent());
-        if (cells.length == 0) return;
+        // Use SwingUtilities.invokeLater to ensure viewport is ready
+        SwingUtilities.invokeLater(() -> {
+            Object[] cells = graph.getChildCells(graph.getDefaultParent());
+            if (cells.length == 0) return;
 
-        // Get viewport dimensions
-        Dimension viewportSize = graphComponent.getViewport().getSize();
+            // Get viewport dimensions
+            Dimension viewportSize = graphComponent.getViewport().getSize();
 
-        // Calculate graph bounds
-        mxCell firstCell = (mxCell) cells[0];
-        double minX = firstCell.getGeometry().getX();
-        double maxX = minX + firstCell.getGeometry().getWidth();
-        double minY = firstCell.getGeometry().getY();
-        double maxY = minY + firstCell.getGeometry().getHeight();
-
-        for (Object cell : cells) {
-            if (cell instanceof mxCell && ((mxCell) cell).isVertex()) {
-                mxCell mxCell = (mxCell) cell;
-                mxGeometry geo = mxCell.getGeometry();
-                if (geo != null) {
-                    minX = Math.min(minX, geo.getX());
-                    maxX = Math.max(maxX, geo.getX() + geo.getWidth());
-                    minY = Math.min(minY, geo.getY());
-                    maxY = Math.max(maxY, geo.getY() + geo.getHeight());
-                }
+            // Ensure viewport has valid size
+            if (viewportSize.width <= 0 || viewportSize.height <= 0) {
+                viewportSize = graphComponent.getSize();
             }
-        }
 
-        double graphWidth = maxX - minX;
-        double graphHeight = maxY - minY;
+            // Calculate graph bounds
+            double minX = Double.MAX_VALUE;
+            double maxX = Double.MIN_VALUE;
+            double minY = Double.MAX_VALUE;
+            double maxY = Double.MIN_VALUE;
 
-        // Calculate offset to center
-        double offsetX = (viewportSize.width - graphWidth) / 2 - minX;
-        double offsetY = 50; // Keep some margin from top
-
-        // Move all cells
-        graph.getModel().beginUpdate();
-        try {
             for (Object cell : cells) {
                 if (cell instanceof mxCell && ((mxCell) cell).isVertex()) {
                     mxCell mxCell = (mxCell) cell;
                     mxGeometry geo = mxCell.getGeometry();
                     if (geo != null) {
-                        geo = (mxGeometry) geo.clone();
-                        geo.setX(geo.getX() + offsetX);
-                        geo.setY(geo.getY() + offsetY);
-                        graph.getModel().setGeometry(cell, geo);
+                        minX = Math.min(minX, geo.getX());
+                        maxX = Math.max(maxX, geo.getX() + geo.getWidth());
+                        minY = Math.min(minY, geo.getY());
+                        maxY = Math.max(maxY, geo.getY() + geo.getHeight());
                     }
                 }
             }
-        } finally {
-            graph.getModel().endUpdate();
-        }
 
-        graphComponent.refresh();
+            double graphWidth = maxX - minX;
+            double graphHeight = maxY - minY;
+
+            // Calculate offset to center horizontally, keep margin from top
+            double offsetX = Math.max(50, (viewportSize.width - graphWidth) / 2 - minX);
+            double offsetY = 50 - minY;  // Always start 50px from top
+
+            // Move all cells
+            graph.getModel().beginUpdate();
+            try {
+                for (Object cell : cells) {
+                    if (cell instanceof mxCell) {
+                        mxCell mxCell = (mxCell) cell;
+                        mxGeometry geo = mxCell.getGeometry();
+                        if (geo != null) {
+                            geo = (mxGeometry) geo.clone();
+                            geo.setX(geo.getX() + offsetX);
+                            geo.setY(geo.getY() + offsetY);
+                            graph.getModel().setGeometry(cell, geo);
+                        }
+                    }
+                }
+            } finally {
+                graph.getModel().endUpdate();
+            }
+
+            graphComponent.refresh();
+        });
     }
 
     /**
@@ -585,8 +603,8 @@ public class FlowchartPanel extends JPanel {
         clearFlowchart();
 
         Object parent = graph.getDefaultParent();
-        Object start = graph.getModel().getCell("start");
-        Object end = graph.getModel().getCell("end");
+        Object start = startCell;
+        Object end = endCell;
 
         graph.getModel().beginUpdate();
         try {
@@ -635,8 +653,8 @@ public class FlowchartPanel extends JPanel {
         clearFlowchart();
 
         Object parent = graph.getDefaultParent();
-        Object start = graph.getModel().getCell("start");
-        Object end = graph.getModel().getCell("end");
+        Object start = startCell;
+        Object end = endCell;
 
         graph.getModel().beginUpdate();
         try {
@@ -681,8 +699,8 @@ public class FlowchartPanel extends JPanel {
         clearFlowchart();
 
         Object parent = graph.getDefaultParent();
-        Object start = graph.getModel().getCell("start");
-        Object end = graph.getModel().getCell("end");
+        Object start = startCell;
+        Object end = endCell;
 
         graph.getModel().beginUpdate();
         try {
