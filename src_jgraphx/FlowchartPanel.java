@@ -72,8 +72,16 @@ public class FlowchartPanel extends JPanel {
 
         // Enable grid with better visibility
         graphComponent.setGridVisible(true);
-        graphComponent.setGridStyle(mxGraphComponent.GRID_STYLE_LINE);  // Changed to LINE for better visibility
-        graphComponent.setGridColor(new Color(230, 230, 230));  // Light gray grid
+        graphComponent.setGridStyle(mxGraphComponent.GRID_STYLE_LINE);
+        graphComponent.setGridColor(new Color(230, 230, 230));
+
+        // CRITICAL: Enable anti-aliasing for better edge rendering
+        graphComponent.setAntiAlias(true);
+        graphComponent.setTextAntiAlias(true);
+
+        // CRITICAL: Enable edge labels
+        graphComponent.getGraph().setAllowDanglingEdges(false);
+        graphComponent.getGraph().setEdgeLabelsMovable(false);
 
         // Setup mouse listeners for edge clicking
         setupMouseListeners();
@@ -211,20 +219,40 @@ public class FlowchartPanel extends JPanel {
         Object parent = graph.getDefaultParent();
         graph.getModel().beginUpdate();
         try {
-            // Create Start block
-            startCell = graph.insertVertex(parent, "start", "Start", 300, 50, 120, 50, START);
+            // Create Start block at top
+            startCell = graph.insertVertex(parent, "start", "INIZIO", 400, 50, 140, 60, START);
 
-            // Create End block
-            endCell = graph.insertVertex(parent, "end", "End", 300, 200, 120, 50, END);
+            // Create End block below
+            endCell = graph.insertVertex(parent, "end", "FINE", 400, 250, 140, 60, END);
 
-            // Connect them
-            graph.insertEdge(parent, null, "", startCell, endCell);
+            // CONNECT THEM WITH VISIBLE EDGE - explicit style
+            Object edge = graph.insertEdge(parent, "mainEdge", "", startCell, endCell);
 
-            // Apply layout
-            applyHierarchicalLayout();
+            // Force edge style to be visible
+            if (edge instanceof mxCell) {
+                mxCell edgeCell = (mxCell) edge;
+                edgeCell.setStyle("strokeColor=#000000;strokeWidth=6;endArrow=classic;");
+            }
 
         } finally {
             graph.getModel().endUpdate();
+        }
+
+        // Refresh to ensure rendering
+        graphComponent.refresh();
+
+        // DEBUG: Print edge count
+        Object[] edges = graph.getEdgesBetween(startCell, endCell);
+        System.out.println("=== INIZIALIZZAZIONE ===");
+        System.out.println("Start cell: " + startCell);
+        System.out.println("End cell: " + endCell);
+        System.out.println("Numero archi tra Start e End: " + edges.length);
+        if (edges.length > 0) {
+            System.out.println("Arco creato: " + edges[0]);
+            if (edges[0] instanceof mxCell) {
+                mxCell edgeCell = (mxCell) edges[0];
+                System.out.println("Stile arco: " + edgeCell.getStyle());
+            }
         }
     }
 
@@ -234,12 +262,27 @@ public class FlowchartPanel extends JPanel {
     private void handleEdgeClick(int x, int y) {
         Object cell = graphComponent.getCellAt(x, y);
 
+        // DEBUG
+        System.out.println("Click at (" + x + ", " + y + ")");
+        System.out.println("Cell at click: " + cell);
+
+        if (cell != null) {
+            if (cell instanceof mxCell) {
+                mxCell mxCell = (mxCell) cell;
+                System.out.println("Cell is: " + (mxCell.isEdge() ? "EDGE" : "VERTEX"));
+                System.out.println("Cell style: " + mxCell.getStyle());
+            }
+        }
+
         // Check if it's an edge
         if (cell != null && cell instanceof mxCell && ((mxCell) cell).isEdge()) {
             mxCell edge = (mxCell) cell;
+            System.out.println(">>> EDGE CLICKED! <<<");
 
             // Ask user what block type to insert
             showBlockTypeDialog(edge);
+        } else {
+            System.out.println("Not an edge - click ignored");
         }
     }
 
