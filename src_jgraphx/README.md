@@ -81,26 +81,47 @@ src_jgraphx/
   - Ctrl+Plus/Minus per zoom in/out
 - ✅ **Esempi predefiniti** - Menu Examples con flowchart di esempio
 
-## Come Usare
+## 🎯 Come Usare - NUOVO SISTEMA!
 
-### Creare Blocchi
+### ⭐ Concetto Chiave: Click sugli ARCHI, non sui blocchi!
 
-1. Usa i pulsanti nella toolbar (+ Process, + Conditional, etc.)
-2. Inserisci il testo del blocco
-3. Il blocco viene aggiunto e connesso automaticamente
+Il flowchart **inizia sempre** con:  `Start → End`
+
+### Aggiungere Blocchi
+
+1. **CLICCA su un ARCO** (freccia) tra due blocchi
+2. Scegli il tipo di blocco da inserire (Process, Conditional, I/O, Loop)
+3. Inserisci il testo del blocco
+4. **Il blocco viene inserito nel mezzo dell'arco!**
+
+### Blocchi Condizionali (IF)
+
+Quando inserisci un **Conditional**:
+- Viene creato un **rombo** con la condizione
+- **Due rami** (True/False) appaiono automaticamente
+- I rami si **uniscono in un punto** (pallino nero)
+- **Puoi cliccare sugli archi dei rami** per aggiungere altri blocchi!
+
+### IF Annidati
+
+1. Clicca sull'arco True o False di un IF
+2. Inserisci un altro Conditional
+3. Il layout si **riorganizza automaticamente**!
 
 ### Editare Blocchi
 
-- **Double-click** su un blocco per editare il testo
-- **Click** per selezionare
-- **Delete** per eliminare
-- **Right-click** per menu contestuale
+- **Double-click** su un blocco → Modifica testo
+- **Click** → Seleziona
+- **Delete** → Elimina
+- **Right-click su arco** → Inserisci blocco qui
+- **Right-click su blocco** → Menu Edit/Delete
 
 ### Navigazione
 
-- **Mouse wheel** - Zoom in/out
-- **Ctrl+Click e trascina** - Pan (spostare la vista)
-- **Ctrl+0** - Reset zoom
+- **Mouse wheel** → Zoom in/out
+- **Trascina blocchi** → Sposta manualmente
+- **Ctrl+Plus/Minus** → Zoom in/out
+- **Ctrl+0** → Reset zoom
 
 ### Menu
 

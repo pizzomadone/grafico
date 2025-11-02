@@ -145,37 +145,16 @@ public class FlowchartEditorApp extends JFrame {
 
         // New button
         JButton newBtn = new JButton("New");
-        newBtn.setToolTipText("Create new flowchart");
+        newBtn.setToolTipText("Create new flowchart (Start -> End)");
         newBtn.addActionListener(e -> newFlowchart());
         toolBar.add(newBtn);
 
         toolBar.addSeparator();
 
-        // Add block buttons
-        JButton addProcessBtn = new JButton("+ Process");
-        addProcessBtn.setToolTipText("Add process block");
-        addProcessBtn.addActionListener(e -> flowchartPanel.addBlock("PROCESS"));
-        toolBar.add(addProcessBtn);
-
-        JButton addConditionalBtn = new JButton("+ Conditional");
-        addConditionalBtn.setToolTipText("Add conditional block");
-        addConditionalBtn.addActionListener(e -> flowchartPanel.addBlock("CONDITIONAL"));
-        toolBar.add(addConditionalBtn);
-
-        JButton addIOBtn = new JButton("+ I/O");
-        addIOBtn.setToolTipText("Add input/output block");
-        addIOBtn.addActionListener(e -> flowchartPanel.addBlock("IO"));
-        toolBar.add(addIOBtn);
-
-        JButton addLoopBtn = new JButton("+ Loop");
-        addLoopBtn.setToolTipText("Add loop block");
-        addLoopBtn.addActionListener(e -> flowchartPanel.addBlock("LOOP"));
-        toolBar.add(addLoopBtn);
-
-        toolBar.addSeparator();
-
-        // Info label
-        JLabel infoLabel = new JLabel(" Click blocks to select | Double-click to edit | Right-click for menu ");
+        // Instructions label - NEW INTERACTION MODEL
+        JLabel infoLabel = new JLabel(" ✦ Click on EDGES (arrows) to insert blocks | Double-click blocks to edit | Right-click for menu ");
+        infoLabel.setFont(infoLabel.getFont().deriveFont(Font.BOLD));
+        infoLabel.setForeground(new Color(0, 100, 0));
         toolBar.add(infoLabel);
 
         add(toolBar, BorderLayout.NORTH);
@@ -237,48 +216,88 @@ public class FlowchartEditorApp extends JFrame {
     }
 
     private void showHelpDialog() {
-        String help = "How to Use Flowchart Editor\n\n" +
-                "Creating Flowcharts:\n" +
-                "1. Use toolbar buttons to add blocks\n" +
-                "2. Select a block type from the dialog\n" +
-                "3. Enter the block text\n\n" +
-                "Editing:\n" +
-                "• Double-click a block to edit its text (or press F2)\n" +
+        String help = "══════════════════════════════════════════════════════\n" +
+                "       FLOWCHART EDITOR - QUICK START GUIDE\n" +
+                "══════════════════════════════════════════════════════\n\n" +
+                "CORE CONCEPT - Click on EDGES, not blocks!\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "The flowchart always starts with: Start → End\n\n" +
+                "To add blocks:\n" +
+                "1. CLICK ON AN EDGE (arrow) between blocks\n" +
+                "2. Select the block type (Process, IF, I/O, Loop)\n" +
+                "3. Enter the block text\n" +
+                "4. The block is inserted in the middle!\n\n" +
+                "CONDITIONAL (IF) BLOCKS\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "When you insert a Conditional block:\n" +
+                "• A diamond shape is created\n" +
+                "• Two branches (True/False) automatically appear\n" +
+                "• Both branches merge at a point (black dot)\n" +
+                "• Click on these branch edges to add more blocks!\n\n" +
+                "NESTED IFs:\n" +
+                "• Click on a True or False branch edge\n" +
+                "• Insert another Conditional block\n" +
+                "• The layout automatically reorganizes!\n\n" +
+                "EDITING\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "• Double-click a block → Edit its text (or press F2)\n" +
                 "• Click to select a block\n" +
-                "• Press Delete to remove selected block\n" +
-                "• Right-click for context menu\n\n" +
-                "Navigation:\n" +
-                "• Mouse wheel to zoom\n" +
-                "• Ctrl+Click and drag to pan\n" +
-                "• Ctrl+Plus/Minus to zoom in/out\n\n" +
-                "Keyboard Shortcuts:\n" +
-                "• Ctrl+N: New flowchart\n" +
-                "• Delete: Delete selected block\n" +
-                "• F2: Edit label\n" +
-                "• Ctrl+0: Reset zoom\n" +
-                "• F1: Show this help\n\n" +
-                "Block Types:\n" +
-                "• Process: Rectangular (actions/processes)\n" +
-                "• Conditional: Diamond (if/else decisions)\n" +
-                "• I/O: Parallelogram (input/output)\n" +
-                "• Loop: Hexagon (while/for loops)\n" +
-                "• Start/End: Rounded rectangle\n\n" +
-                "Tips:\n" +
-                "• Use Examples menu to see sample flowcharts\n" +
-                "• JGraphX automatically arranges blocks hierarchically\n" +
-                "• You can manually move blocks by dragging them";
+                "• Press Delete → Remove selected block\n" +
+                "• Right-click edge → Quick insert menu\n" +
+                "• Right-click block → Edit/Delete menu\n\n" +
+                "NAVIGATION\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "• Mouse wheel → Zoom in/out\n" +
+                "• Drag blocks → Move them manually\n" +
+                "• Ctrl+Plus/Minus → Zoom in/out\n" +
+                "• Ctrl+0 → Reset zoom\n\n" +
+                "KEYBOARD SHORTCUTS\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "• Ctrl+N → New flowchart\n" +
+                "• Delete → Delete selected block\n" +
+                "• F2 → Edit label\n" +
+                "• F1 → Show this help\n\n" +
+                "BLOCK TYPES\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "• Process: Blue rectangle (actions/operations)\n" +
+                "• Conditional (IF): Yellow diamond (decisions)\n" +
+                "• I/O: Green cylinder (input/output/storage)\n" +
+                "• Loop: Orange hexagon (while/for loops)\n" +
+                "• Start/End: Gray rounded rectangle (fixed)\n" +
+                "• Merge Point: Black dot (automatic for IFs)\n\n" +
+                "TIPS & TRICKS\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "✓ Use Examples menu to see pre-built flowcharts\n" +
+                "✓ Right-click → Re-apply Layout to reorganize\n" +
+                "✓ Start and End blocks cannot be deleted\n" +
+                "✓ The layout automatically adjusts when you add blocks\n" +
+                "✓ True branches are GREEN, False branches are RED\n\n" +
+                "EXAMPLE WORKFLOW\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "1. Start with: Start → End\n" +
+                "2. Click the edge between Start and End\n" +
+                "3. Insert \"I/O\" block: \"Input: number\"\n" +
+                "4. Click edge after I/O block\n" +
+                "5. Insert \"Conditional\": \"number > 0?\"\n" +
+                "   → Two branches appear automatically!\n" +
+                "6. Click the True (green) branch\n" +
+                "7. Insert \"Process\": \"result = number * 2\"\n" +
+                "8. Click the False (red) branch\n" +
+                "9. Insert \"Process\": \"result = 0\"\n" +
+                "10. Both branches merge automatically!\n\n" +
+                "Ready to create flowcharts! 🎨";
 
         JTextArea textArea = new JTextArea(help);
         textArea.setEditable(false);
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
 
         JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(550, 500));
+        scrollPane.setPreferredSize(new Dimension(600, 600));
 
         JOptionPane.showMessageDialog(
             this,
             scrollPane,
-            "Help",
+            "Flowchart Editor - Help",
             JOptionPane.INFORMATION_MESSAGE
         );
     }

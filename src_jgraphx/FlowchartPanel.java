@@ -1,7 +1,9 @@
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
 import com.mxgraph.model.mxCell;
+import com.mxgraph.model.mxGeometry;
 import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.util.mxConstants;
+import com.mxgraph.util.mxPoint;
 import com.mxgraph.view.mxGraph;
 import com.mxgraph.view.mxStylesheet;
 
@@ -14,13 +16,15 @@ import java.util.Map;
 
 /**
  * Panel that contains the JGraphX flowchart component.
- * Handles flowchart creation, editing, and layout.
+ * NEW INTERACTION MODEL:
+ * - Starts with Start -> End
+ * - Click on EDGES to insert blocks
+ * - IF blocks automatically create merge structure
  */
 public class FlowchartPanel extends JPanel {
 
     private mxGraph graph;
     private mxGraphComponent graphComponent;
-    private Object lastAddedCell;  // Track last added cell for auto-connection
 
     // Block type constants
     public static final String PROCESS = "PROCESS";
@@ -29,22 +33,36 @@ public class FlowchartPanel extends JPanel {
     public static final String LOOP = "LOOP";
     public static final String START = "START";
     public static final String END = "END";
+    public static final String MERGE = "MERGE";  // Merge point for conditionals
+
+    // Track merge points for conditionals
+    private Map<Object, Object> conditionalMergePoints = new HashMap<>();
 
     public FlowchartPanel() {
         setLayout(new BorderLayout());
 
         // Create graph
-        graph = new mxGraph();
+        graph = new mxGraph() {
+            @Override
+            public boolean isCellEditable(Object cell) {
+                // Only allow editing text of vertices (not edges)
+                return cell instanceof mxCell && ((mxCell) cell).isVertex() &&
+                       !MERGE.equals(((mxCell) cell).getStyle());
+            }
+        };
+
         graph.setAllowDanglingEdges(false);
         graph.setCellsEditable(true);
         graph.setConnectableEdges(false);
+        graph.setCellsDisconnectable(false);
+        graph.setCellsMovable(true);
 
         // Setup custom styles for flowchart blocks
         setupStyles();
 
         // Create graph component
         graphComponent = new mxGraphComponent(graph);
-        graphComponent.setConnectable(true);
+        graphComponent.setConnectable(false);
         graphComponent.getViewport().setOpaque(true);
         graphComponent.getViewport().setBackground(Color.WHITE);
 
@@ -52,13 +70,13 @@ public class FlowchartPanel extends JPanel {
         graphComponent.setGridVisible(true);
         graphComponent.setGridStyle(mxGraphComponent.GRID_STYLE_DOT);
 
-        // Setup mouse listeners for context menu and editing
+        // Setup mouse listeners for edge clicking
         setupMouseListeners();
 
         add(graphComponent, BorderLayout.CENTER);
 
-        // Show welcome message
-        showWelcomeMessage();
+        // Initialize with Start -> End
+        initializeStartEnd();
     }
 
     private void setupStyles() {
@@ -85,7 +103,7 @@ public class FlowchartPanel extends JPanel {
         conditionalStyle.put(mxConstants.STYLE_FONTSIZE, 12);
         stylesheet.putCellStyle(CONDITIONAL, conditionalStyle);
 
-        // I/O block style (cylinder for storage/input-output, green)
+        // I/O block style (cylinder, green)
         Map<String, Object> ioStyle = new HashMap<>();
         ioStyle.put(mxConstants.STYLE_SHAPE, mxConstants.SHAPE_CYLINDER);
         ioStyle.put(mxConstants.STYLE_FILLCOLOR, "#C8FFC8");
@@ -118,13 +136,35 @@ public class FlowchartPanel extends JPanel {
         stylesheet.putCellStyle(START, startEndStyle);
         stylesheet.putCellStyle(END, startEndStyle);
 
-        // Edge style (arrows)
+        // Merge point style (small circle, black)
+        Map<String, Object> mergeStyle = new HashMap<>();
+        mergeStyle.put(mxConstants.STYLE_SHAPE, mxConstants.SHAPE_ELLIPSE);
+        mergeStyle.put(mxConstants.STYLE_FILLCOLOR, "#000000");
+        mergeStyle.put(mxConstants.STYLE_STROKECOLOR, "#000000");
+        mergeStyle.put(mxConstants.STYLE_STROKEWIDTH, 2);
+        mergeStyle.put(mxConstants.STYLE_FONTCOLOR, "#FFFFFF");
+        mergeStyle.put(mxConstants.STYLE_FONTSIZE, 1);
+        stylesheet.putCellStyle(MERGE, mergeStyle);
+
+        // Edge styles
         Map<String, Object> edgeStyle = new HashMap<>();
         edgeStyle.put(mxConstants.STYLE_STROKECOLOR, "#000000");
         edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 2);
         edgeStyle.put(mxConstants.STYLE_ENDARROW, mxConstants.ARROW_CLASSIC);
         edgeStyle.put(mxConstants.STYLE_EDGE, mxConstants.EDGESTYLE_ORTHOGONAL);
         stylesheet.setDefaultEdgeStyle(edgeStyle);
+
+        // True branch edge style (green)
+        Map<String, Object> trueBranchStyle = new HashMap<>(edgeStyle);
+        trueBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#009600");
+        trueBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#009600");
+        stylesheet.putCellStyle("TRUE_BRANCH", trueBranchStyle);
+
+        // False branch edge style (red)
+        Map<String, Object> falseBranchStyle = new HashMap<>(edgeStyle);
+        falseBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#960000");
+        falseBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#960000");
+        stylesheet.putCellStyle("FALSE_BRANCH", falseBranchStyle);
     }
 
     private void setupMouseListeners() {
@@ -134,6 +174,9 @@ public class FlowchartPanel extends JPanel {
                 if (e.getClickCount() == 2) {
                     // Double-click to edit label
                     editSelectedLabel();
+                } else if (SwingUtilities.isLeftMouseButton(e)) {
+                    // Single click - check if clicking on an edge
+                    handleEdgeClick(e.getX(), e.getY());
                 }
             }
 
@@ -146,80 +189,166 @@ public class FlowchartPanel extends JPanel {
         });
     }
 
-    private void showWelcomeMessage() {
-        // This will be visible until the first block is added
+    /**
+     * Initialize flowchart with Start -> End
+     */
+    private void initializeStartEnd() {
         Object parent = graph.getDefaultParent();
         graph.getModel().beginUpdate();
         try {
-            mxCell welcomeCell = (mxCell) graph.insertVertex(parent, null,
-                "Welcome to Flowchart Editor!\n\n" +
-                "Use toolbar buttons or Examples menu\n" +
-                "to start creating flowcharts.",
-                200, 200, 300, 100, "fillColor=#F0F0F0;strokeColor=#808080;fontColor=#404040");
-            welcomeCell.setConnectable(false);
+            // Create Start block
+            Object start = graph.insertVertex(parent, "start", "Start", 300, 50, 120, 50, START);
+
+            // Create End block
+            Object end = graph.insertVertex(parent, "end", "End", 300, 200, 120, 50, END);
+
+            // Connect them
+            graph.insertEdge(parent, null, "", start, end);
+
+            // Apply layout
+            applyHierarchicalLayout();
+
         } finally {
             graph.getModel().endUpdate();
         }
     }
 
     /**
-     * Add a new block to the flowchart.
+     * Handle click on edges to insert blocks
      */
-    public void addBlock(String blockType) {
-        // Ask for block text
-        String defaultText = getDefaultTextForBlockType(blockType);
-        String text = JOptionPane.showInputDialog(
+    private void handleEdgeClick(int x, int y) {
+        Object cell = graphComponent.getCellAt(x, y);
+
+        // Check if it's an edge
+        if (cell != null && cell instanceof mxCell && ((mxCell) cell).isEdge()) {
+            mxCell edge = (mxCell) cell;
+
+            // Ask user what block type to insert
+            showBlockTypeDialog(edge);
+        }
+    }
+
+    /**
+     * Show dialog to select block type to insert
+     */
+    private void showBlockTypeDialog(mxCell edge) {
+        String[] options = {"Process", "Conditional (IF)", "I/O", "Loop", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(
             this,
-            "Enter " + blockType.toLowerCase() + " text:",
-            defaultText
+            "Select block type to insert:",
+            "Insert Block",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
         );
 
-        if (text != null && !text.trim().isEmpty()) {
-            Object parent = graph.getDefaultParent();
+        String blockType = null;
+        switch (choice) {
+            case 0: blockType = PROCESS; break;
+            case 1: blockType = CONDITIONAL; break;
+            case 2: blockType = IO; break;
+            case 3: blockType = LOOP; break;
+            default: return; // Cancelled
+        }
 
-            graph.getModel().beginUpdate();
-            try {
-                // Determine size based on block type
-                int width = 140;
-                int height = 60;
-                if (blockType.equals(CONDITIONAL)) {
-                    width = 120;
-                    height = 80;
-                } else if (blockType.equals(LOOP)) {
-                    width = 120;
-                    height = 70;
-                }
+        if (blockType != null) {
+            // Ask for block text
+            String defaultText = getDefaultTextForBlockType(blockType);
+            String text = JOptionPane.showInputDialog(
+                this,
+                "Enter block text:",
+                defaultText
+            );
 
-                // Calculate position (below last added cell or at top)
-                int x = 300;
-                int y = 50;
-                if (lastAddedCell != null && lastAddedCell instanceof mxCell) {
-                    mxCell lastCell = (mxCell) lastAddedCell;
-                    x = (int) lastCell.getGeometry().getX();
-                    y = (int) (lastCell.getGeometry().getY() + lastCell.getGeometry().getHeight() + 60);
-                }
-
-                // Create vertex
-                Object newCell = graph.insertVertex(parent, null, text, x, y, width, height, blockType);
-
-                // Connect to previous cell if exists
-                if (lastAddedCell != null) {
-                    graph.insertEdge(parent, null, "", lastAddedCell, newCell);
-                }
-
-                lastAddedCell = newCell;
-
-                // Auto layout
-                applyHierarchicalLayout();
-
-            } finally {
-                graph.getModel().endUpdate();
+            if (text != null && !text.trim().isEmpty()) {
+                insertBlockInEdge(edge, blockType, text.trim());
             }
         }
     }
 
     /**
-     * Apply hierarchical layout to organize the flowchart.
+     * Insert a block in the middle of an edge
+     */
+    private void insertBlockInEdge(mxCell edge, String blockType, String text) {
+        Object parent = graph.getDefaultParent();
+
+        graph.getModel().beginUpdate();
+        try {
+            // Get source and target of the edge
+            mxCell source = (mxCell) edge.getSource();
+            mxCell target = (mxCell) edge.getTarget();
+
+            // Remove the original edge
+            graph.removeCells(new Object[]{edge});
+
+            if (blockType.equals(CONDITIONAL)) {
+                // Special handling for IF blocks
+                insertConditionalBlock(source, target, text);
+            } else {
+                // Regular block insertion
+                insertRegularBlock(source, target, blockType, text);
+            }
+
+            // Apply layout
+            applyHierarchicalLayout();
+
+        } finally {
+            graph.getModel().endUpdate();
+        }
+    }
+
+    /**
+     * Insert a regular (non-conditional) block
+     */
+    private void insertRegularBlock(mxCell source, mxCell target, String blockType, String text) {
+        Object parent = graph.getDefaultParent();
+
+        // Determine size based on block type
+        int width = 140;
+        int height = 60;
+        if (blockType.equals(LOOP)) {
+            width = 120;
+            height = 70;
+        }
+
+        // Create new block
+        Object newBlock = graph.insertVertex(parent, null, text, 0, 0, width, height, blockType);
+
+        // Connect: source -> newBlock -> target
+        graph.insertEdge(parent, null, "", source, newBlock);
+        graph.insertEdge(parent, null, "", newBlock, target);
+    }
+
+    /**
+     * Insert a conditional (IF) block with merge structure
+     */
+    private void insertConditionalBlock(mxCell source, mxCell target, String text) {
+        Object parent = graph.getDefaultParent();
+
+        // Create the conditional block (diamond)
+        Object conditional = graph.insertVertex(parent, null, text, 0, 0, 120, 80, CONDITIONAL);
+
+        // Create merge point (small circle where branches meet)
+        Object mergePoint = graph.insertVertex(parent, null, "", 0, 0, 15, 15, MERGE);
+
+        // Store the association
+        conditionalMergePoints.put(conditional, mergePoint);
+
+        // Connect: source -> conditional
+        graph.insertEdge(parent, null, "", source, conditional);
+
+        // Create TRUE and FALSE branches to merge point
+        Object trueBranch = graph.insertEdge(parent, null, "True", conditional, mergePoint, "TRUE_BRANCH");
+        Object falseBranch = graph.insertEdge(parent, null, "False", conditional, mergePoint, "FALSE_BRANCH");
+
+        // Connect: mergePoint -> target
+        graph.insertEdge(parent, null, "", mergePoint, target);
+    }
+
+    /**
+     * Apply hierarchical layout to organize the flowchart
      */
     public void applyHierarchicalLayout() {
         Object parent = graph.getDefaultParent();
@@ -230,38 +359,53 @@ public class FlowchartPanel extends JPanel {
     }
 
     /**
-     * Clear the entire flowchart.
+     * Clear the entire flowchart and reinitialize
      */
     public void clearFlowchart() {
         graph.getModel().beginUpdate();
         try {
             graph.removeCells(graph.getChildCells(graph.getDefaultParent()));
-            lastAddedCell = null;
-            showWelcomeMessage();
+            conditionalMergePoints.clear();
+            initializeStartEnd();
         } finally {
             graph.getModel().endUpdate();
         }
     }
 
     /**
-     * Delete the selected cell(s).
+     * Delete the selected cell(s)
      */
     public void deleteSelected() {
         Object[] cells = graph.getSelectionCells();
         if (cells != null && cells.length > 0) {
+            // Don't allow deleting Start or End
+            for (Object cell : cells) {
+                if (cell instanceof mxCell) {
+                    mxCell mxCell = (mxCell) cell;
+                    String id = mxCell.getId();
+                    if ("start".equals(id) || "end".equals(id)) {
+                        JOptionPane.showMessageDialog(this,
+                            "Cannot delete Start or End blocks!",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                }
+            }
+
             graph.removeCells(cells);
             applyHierarchicalLayout();
         }
     }
 
     /**
-     * Edit the label of the selected cell.
+     * Edit the label of the selected cell
      */
     public void editSelectedLabel() {
         Object cell = graph.getSelectionCell();
         if (cell != null && cell instanceof mxCell) {
             mxCell mxCell = (mxCell) cell;
-            if (mxCell.isVertex()) {
+            if (mxCell.isVertex() && !MERGE.equals(mxCell.getStyle())) {
                 String currentLabel = (String) mxCell.getValue();
                 String newLabel = JOptionPane.showInputDialog(
                     this,
@@ -283,32 +427,36 @@ public class FlowchartPanel extends JPanel {
     }
 
     /**
-     * Show context menu on right-click.
+     * Show context menu on right-click
      */
     private void showContextMenu(int x, int y) {
         Object cell = graphComponent.getCellAt(x, y);
 
         JPopupMenu menu = new JPopupMenu();
 
-        if (cell != null && cell instanceof mxCell && ((mxCell) cell).isVertex()) {
-            JMenuItem editItem = new JMenuItem("Edit");
-            editItem.addActionListener(e -> editSelectedLabel());
-            menu.add(editItem);
+        if (cell != null && cell instanceof mxCell) {
+            mxCell mxCell = (mxCell) cell;
 
-            JMenuItem deleteItem = new JMenuItem("Delete");
-            deleteItem.addActionListener(e -> deleteSelected());
-            menu.add(deleteItem);
+            if (mxCell.isVertex() && !MERGE.equals(mxCell.getStyle())) {
+                JMenuItem editItem = new JMenuItem("Edit");
+                editItem.addActionListener(e -> editSelectedLabel());
+                menu.add(editItem);
+
+                // Don't allow deleting Start or End
+                if (!"start".equals(mxCell.getId()) && !"end".equals(mxCell.getId())) {
+                    JMenuItem deleteItem = new JMenuItem("Delete");
+                    deleteItem.addActionListener(e -> deleteSelected());
+                    menu.add(deleteItem);
+                }
+
+                menu.addSeparator();
+            } else if (mxCell.isEdge()) {
+                JMenuItem insertItem = new JMenuItem("Insert Block Here");
+                insertItem.addActionListener(e -> showBlockTypeDialog(mxCell));
+                menu.add(insertItem);
+                menu.addSeparator();
+            }
         }
-
-        JMenuItem addProcessItem = new JMenuItem("Add Process Block");
-        addProcessItem.addActionListener(e -> addBlock(PROCESS));
-        menu.add(addProcessItem);
-
-        JMenuItem addConditionalItem = new JMenuItem("Add Conditional Block");
-        addConditionalItem.addActionListener(e -> addBlock(CONDITIONAL));
-        menu.add(addConditionalItem);
-
-        menu.addSeparator();
 
         JMenuItem layoutItem = new JMenuItem("Re-apply Layout");
         layoutItem.addActionListener(e -> applyHierarchicalLayout());
@@ -318,21 +466,21 @@ public class FlowchartPanel extends JPanel {
     }
 
     /**
-     * Zoom in.
+     * Zoom in
      */
     public void zoomIn() {
         graphComponent.zoomIn();
     }
 
     /**
-     * Zoom out.
+     * Zoom out
      */
     public void zoomOut() {
         graphComponent.zoomOut();
     }
 
     /**
-     * Reset zoom to 100%.
+     * Reset zoom to 100%
      */
     public void resetZoom() {
         graphComponent.zoomActual();
@@ -360,40 +508,48 @@ public class FlowchartPanel extends JPanel {
     // ===== EXAMPLE FLOWCHARTS =====
 
     /**
-     * Create a simple conditional flowchart example.
+     * Create a simple conditional flowchart example
      */
     public void createSimpleConditionalExample() {
         clearFlowchart();
 
         Object parent = graph.getDefaultParent();
+        Object start = graph.getModel().getCell("start");
+        Object end = graph.getModel().getCell("end");
+
         graph.getModel().beginUpdate();
         try {
-            // Create blocks
-            Object start = graph.insertVertex(parent, null, "Start", 300, 20, 120, 50, START);
-            Object input = graph.insertVertex(parent, null, "Input: n", 300, 100, 140, 60, IO);
-            Object condition = graph.insertVertex(parent, null, "n > 0?", 300, 200, 120, 80, CONDITIONAL);
-            Object processTrue = graph.insertVertex(parent, null, "result = n * 2", 450, 320, 140, 60, PROCESS);
-            Object processFalse = graph.insertVertex(parent, null, "result = 0", 150, 320, 140, 60, PROCESS);
-            Object output = graph.insertVertex(parent, null, "Output: result", 300, 420, 140, 60, IO);
-            Object end = graph.insertVertex(parent, null, "End", 300, 520, 120, 50, END);
+            // Remove Start->End edge
+            Object[] edges = graph.getEdgesBetween(start, end);
+            if (edges.length > 0) {
+                graph.removeCells(edges);
+            }
 
-            // Create edges
+            // Build: Start -> Input -> Condition -> Output -> End
+            Object input = graph.insertVertex(parent, null, "Input: n", 0, 0, 140, 60, IO);
             graph.insertEdge(parent, null, "", start, input);
+
+            Object condition = graph.insertVertex(parent, null, "n > 0?", 0, 0, 120, 80, CONDITIONAL);
             graph.insertEdge(parent, null, "", input, condition);
 
+            Object mergePoint = graph.insertVertex(parent, null, "", 0, 0, 15, 15, MERGE);
+            conditionalMergePoints.put(condition, mergePoint);
+
             // True branch
-            Object edgeTrue = graph.insertEdge(parent, null, "True", condition, processTrue);
-            ((mxCell) edgeTrue).setStyle("strokeColor=#009600;fontColor=#009600");
+            Object processTrue = graph.insertVertex(parent, null, "result = n * 2", 0, 0, 140, 60, PROCESS);
+            graph.insertEdge(parent, null, "True", condition, processTrue, "TRUE_BRANCH");
+            graph.insertEdge(parent, null, "", processTrue, mergePoint);
 
             // False branch
-            Object edgeFalse = graph.insertEdge(parent, null, "False", condition, processFalse);
-            ((mxCell) edgeFalse).setStyle("strokeColor=#960000;fontColor=#960000");
+            Object processFalse = graph.insertVertex(parent, null, "result = 0", 0, 0, 140, 60, PROCESS);
+            graph.insertEdge(parent, null, "False", condition, processFalse, "FALSE_BRANCH");
+            graph.insertEdge(parent, null, "", processFalse, mergePoint);
 
-            graph.insertEdge(parent, null, "", processTrue, output);
-            graph.insertEdge(parent, null, "", processFalse, output);
+            // After merge
+            Object output = graph.insertVertex(parent, null, "Output: result", 0, 0, 140, 60, IO);
+            graph.insertEdge(parent, null, "", mergePoint, output);
             graph.insertEdge(parent, null, "", output, end);
 
-            // Apply layout
             applyHierarchicalLayout();
 
         } finally {
@@ -402,41 +558,44 @@ public class FlowchartPanel extends JPanel {
     }
 
     /**
-     * Create a loop flowchart example.
+     * Create a loop flowchart example
      */
     public void createLoopExample() {
         clearFlowchart();
 
         Object parent = graph.getDefaultParent();
+        Object start = graph.getModel().getCell("start");
+        Object end = graph.getModel().getCell("end");
+
         graph.getModel().beginUpdate();
         try {
-            // Create blocks
-            Object start = graph.insertVertex(parent, null, "Start", 300, 20, 120, 50, START);
-            Object input = graph.insertVertex(parent, null, "Input: n\ni = 0", 300, 100, 140, 60, IO);
-            Object loop = graph.insertVertex(parent, null, "i < n?", 300, 200, 120, 70, LOOP);
-            Object loopBody = graph.insertVertex(parent, null, "Print i\ni = i + 1", 450, 310, 140, 60, PROCESS);
-            Object output = graph.insertVertex(parent, null, "Output: Done", 300, 400, 140, 60, IO);
-            Object end = graph.insertVertex(parent, null, "End", 300, 500, 120, 50, END);
+            // Remove Start->End edge
+            Object[] edges = graph.getEdgesBetween(start, end);
+            if (edges.length > 0) {
+                graph.removeCells(edges);
+            }
 
-            // Create edges
+            // Build flowchart
+            Object input = graph.insertVertex(parent, null, "Input: n\ni = 0", 0, 0, 140, 60, IO);
             graph.insertEdge(parent, null, "", start, input);
+
+            Object loop = graph.insertVertex(parent, null, "i < n?", 0, 0, 120, 70, LOOP);
             graph.insertEdge(parent, null, "", input, loop);
 
-            // Loop body edge
-            Object edgeLoop = graph.insertEdge(parent, null, "Yes", loop, loopBody);
-            ((mxCell) edgeLoop).setStyle("strokeColor=#009600;fontColor=#009600");
+            Object mergePoint = graph.insertVertex(parent, null, "", 0, 0, 15, 15, MERGE);
+
+            Object loopBody = graph.insertVertex(parent, null, "Print i\ni = i + 1", 0, 0, 140, 60, PROCESS);
+            graph.insertEdge(parent, null, "Yes", loop, loopBody, "TRUE_BRANCH");
 
             // Loop back
-            Object edgeBack = graph.insertEdge(parent, null, "", loopBody, loop);
-            ((mxCell) edgeBack).setStyle("strokeColor=#0000FF;dashed=1");
+            graph.insertEdge(parent, null, "", loopBody, loop);
 
-            // Exit loop
-            Object edgeExit = graph.insertEdge(parent, null, "No", loop, output);
-            ((mxCell) edgeExit).setStyle("strokeColor=#960000;fontColor=#960000");
+            graph.insertEdge(parent, null, "No", loop, mergePoint, "FALSE_BRANCH");
 
+            Object output = graph.insertVertex(parent, null, "Done", 0, 0, 140, 60, IO);
+            graph.insertEdge(parent, null, "", mergePoint, output);
             graph.insertEdge(parent, null, "", output, end);
 
-            // Apply layout
             applyHierarchicalLayout();
 
         } finally {
@@ -445,60 +604,76 @@ public class FlowchartPanel extends JPanel {
     }
 
     /**
-     * Create a nested conditional flowchart example.
+     * Create a nested conditional flowchart example
      */
     public void createNestedConditionalExample() {
         clearFlowchart();
 
         Object parent = graph.getDefaultParent();
+        Object start = graph.getModel().getCell("start");
+        Object end = graph.getModel().getCell("end");
+
         graph.getModel().beginUpdate();
         try {
-            // Create blocks
-            Object start = graph.insertVertex(parent, null, "Start", 300, 20, 120, 50, START);
-            Object input = graph.insertVertex(parent, null, "Input: x, y", 300, 100, 140, 60, IO);
-            Object outerCond = graph.insertVertex(parent, null, "x > 0?", 300, 200, 120, 80, CONDITIONAL);
+            // Remove Start->End edge
+            Object[] edges = graph.getEdgesBetween(start, end);
+            if (edges.length > 0) {
+                graph.removeCells(edges);
+            }
 
-            // True branch - nested conditional
-            Object innerCond = graph.insertVertex(parent, null, "y > 0?", 450, 320, 120, 80, CONDITIONAL);
-            Object innerTrue = graph.insertVertex(parent, null, "result = x + y", 550, 440, 140, 60, PROCESS);
-            Object innerFalse = graph.insertVertex(parent, null, "result = x - y", 350, 440, 140, 60, PROCESS);
-
-            // False branch
-            Object outerFalse = graph.insertVertex(parent, null, "result = 0", 150, 320, 140, 60, PROCESS);
-
-            Object output = graph.insertVertex(parent, null, "Output: result", 300, 560, 140, 60, IO);
-            Object end = graph.insertVertex(parent, null, "End", 300, 660, 120, 50, END);
-
-            // Create edges
+            // Build flowchart
+            Object input = graph.insertVertex(parent, null, "Input: x, y", 0, 0, 140, 60, IO);
             graph.insertEdge(parent, null, "", start, input);
+
+            // Outer condition
+            Object outerCond = graph.insertVertex(parent, null, "x > 0?", 0, 0, 120, 80, CONDITIONAL);
             graph.insertEdge(parent, null, "", input, outerCond);
 
-            // Outer true branch
-            Object edgeOuterTrue = graph.insertEdge(parent, null, "True", outerCond, innerCond);
-            ((mxCell) edgeOuterTrue).setStyle("strokeColor=#009600;fontColor=#009600");
+            Object outerMerge = graph.insertVertex(parent, null, "", 0, 0, 15, 15, MERGE);
 
-            // Outer false branch
-            Object edgeOuterFalse = graph.insertEdge(parent, null, "False", outerCond, outerFalse);
-            ((mxCell) edgeOuterFalse).setStyle("strokeColor=#960000;fontColor=#960000");
+            // True branch - nested condition
+            Object innerCond = graph.insertVertex(parent, null, "y > 0?", 0, 0, 120, 80, CONDITIONAL);
+            graph.insertEdge(parent, null, "True", outerCond, innerCond, "TRUE_BRANCH");
 
-            // Inner conditional branches
-            Object edgeInnerTrue = graph.insertEdge(parent, null, "True", innerCond, innerTrue);
-            ((mxCell) edgeInnerTrue).setStyle("strokeColor=#009600;fontColor=#009600");
+            Object innerMerge = graph.insertVertex(parent, null, "", 0, 0, 15, 15, MERGE);
 
-            Object edgeInnerFalse = graph.insertEdge(parent, null, "False", innerCond, innerFalse);
-            ((mxCell) edgeInnerFalse).setStyle("strokeColor=#960000;fontColor=#960000");
+            Object innerTrue = graph.insertVertex(parent, null, "result = x + y", 0, 0, 140, 60, PROCESS);
+            graph.insertEdge(parent, null, "True", innerCond, innerTrue, "TRUE_BRANCH");
+            graph.insertEdge(parent, null, "", innerTrue, innerMerge);
 
-            // Merge to output
-            graph.insertEdge(parent, null, "", innerTrue, output);
-            graph.insertEdge(parent, null, "", innerFalse, output);
-            graph.insertEdge(parent, null, "", outerFalse, output);
+            Object innerFalse = graph.insertVertex(parent, null, "result = x - y", 0, 0, 140, 60, PROCESS);
+            graph.insertEdge(parent, null, "False", innerCond, innerFalse, "FALSE_BRANCH");
+            graph.insertEdge(parent, null, "", innerFalse, innerMerge);
+
+            graph.insertEdge(parent, null, "", innerMerge, outerMerge);
+
+            // False branch
+            Object outerFalse = graph.insertVertex(parent, null, "result = 0", 0, 0, 140, 60, PROCESS);
+            graph.insertEdge(parent, null, "False", outerCond, outerFalse, "FALSE_BRANCH");
+            graph.insertEdge(parent, null, "", outerFalse, outerMerge);
+
+            // After merge
+            Object output = graph.insertVertex(parent, null, "Output: result", 0, 0, 140, 60, IO);
+            graph.insertEdge(parent, null, "", outerMerge, output);
             graph.insertEdge(parent, null, "", output, end);
 
-            // Apply layout
             applyHierarchicalLayout();
 
         } finally {
             graph.getModel().endUpdate();
         }
+    }
+
+    /**
+     * Method called from toolbar - no longer used with new interaction model
+     */
+    public void addBlock(String blockType) {
+        JOptionPane.showMessageDialog(this,
+            "To add blocks:\n" +
+            "1. Click on an EDGE (arrow) in the flowchart\n" +
+            "2. Select the block type to insert\n\n" +
+            "The new block will be inserted in the middle of the edge.",
+            "How to Add Blocks",
+            JOptionPane.INFORMATION_MESSAGE);
     }
 }
