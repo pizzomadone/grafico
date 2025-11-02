@@ -151,39 +151,34 @@ public class FlowchartPanel extends JPanel {
         mergeStyle.put(mxConstants.STYLE_FONTSIZE, 1);
         stylesheet.putCellStyle(MERGE, mergeStyle);
 
-        // Edge styles - MUCH THICKER for maximum visibility
+        // Edge styles - SIMPLE AND VISIBLE
         Map<String, Object> edgeStyle = new HashMap<>();
         edgeStyle.put(mxConstants.STYLE_STROKECOLOR, "#000000");
-        edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 4);  // Increased to 4 for maximum visibility
+        edgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 5);  // VERY THICK
         edgeStyle.put(mxConstants.STYLE_ENDARROW, mxConstants.ARROW_CLASSIC);
-        edgeStyle.put(mxConstants.STYLE_EDGE, mxConstants.EDGESTYLE_ORTHOGONAL);
-        edgeStyle.put(mxConstants.STYLE_FONTSIZE, 14);  // Larger font for labels
+        edgeStyle.put(mxConstants.STYLE_FONTSIZE, 16);
         edgeStyle.put(mxConstants.STYLE_FONTCOLOR, "#000000");
-        edgeStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);  // Bold labels
+        edgeStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);
         stylesheet.setDefaultEdgeStyle(edgeStyle);
 
-        // True branch edge style (green) - exits from RIGHT side of diamond
-        Map<String, Object> trueBranchStyle = new HashMap<>(edgeStyle);
-        trueBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#00AA00");  // Brighter green
-        trueBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#00AA00");
-        trueBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 4);
-        trueBranchStyle.put(mxConstants.STYLE_FONTSIZE, 16);  // Even larger for branch labels
+        // True branch - GREEN and THICK
+        Map<String, Object> trueBranchStyle = new HashMap<>();
+        trueBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#00CC00");  // Bright green
+        trueBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#00CC00");
+        trueBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 5);
+        trueBranchStyle.put(mxConstants.STYLE_ENDARROW, mxConstants.ARROW_CLASSIC);
+        trueBranchStyle.put(mxConstants.STYLE_FONTSIZE, 18);
         trueBranchStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);
-        trueBranchStyle.put(mxConstants.STYLE_EXIT_X, 1.0);  // Exit from right
-        trueBranchStyle.put(mxConstants.STYLE_EXIT_Y, 0.5);  // Middle of right side
-        trueBranchStyle.put(mxConstants.STYLE_EXIT_PERIMETER, 0);
         stylesheet.putCellStyle("TRUE_BRANCH", trueBranchStyle);
 
-        // False branch edge style (red) - exits from LEFT side of diamond
-        Map<String, Object> falseBranchStyle = new HashMap<>(edgeStyle);
-        falseBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#CC0000");  // Brighter red
-        falseBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#CC0000");
-        falseBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 4);
-        falseBranchStyle.put(mxConstants.STYLE_FONTSIZE, 16);  // Even larger for branch labels
+        // False branch - RED and THICK
+        Map<String, Object> falseBranchStyle = new HashMap<>();
+        falseBranchStyle.put(mxConstants.STYLE_STROKECOLOR, "#FF0000");  // Bright red
+        falseBranchStyle.put(mxConstants.STYLE_FONTCOLOR, "#FF0000");
+        falseBranchStyle.put(mxConstants.STYLE_STROKEWIDTH, 5);
+        falseBranchStyle.put(mxConstants.STYLE_ENDARROW, mxConstants.ARROW_CLASSIC);
+        falseBranchStyle.put(mxConstants.STYLE_FONTSIZE, 18);
         falseBranchStyle.put(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD);
-        falseBranchStyle.put(mxConstants.STYLE_EXIT_X, 0.0);  // Exit from left
-        falseBranchStyle.put(mxConstants.STYLE_EXIT_Y, 0.5);  // Middle of left side
-        falseBranchStyle.put(mxConstants.STYLE_EXIT_PERIMETER, 0);
         stylesheet.putCellStyle("FALSE_BRANCH", falseBranchStyle);
     }
 
@@ -373,78 +368,9 @@ public class FlowchartPanel extends JPanel {
     public void applyHierarchicalLayout() {
         Object parent = graph.getDefaultParent();
         mxHierarchicalLayout layout = new mxHierarchicalLayout(graph);
-        layout.setInterRankCellSpacing(60);
-        layout.setIntraCellSpacing(80);  // More space between branches
+        layout.setInterRankCellSpacing(80);
+        layout.setIntraCellSpacing(100);  // More space between branches
         layout.execute(parent);
-
-        // Center the graph in viewport
-        centerGraph();
-    }
-
-    /**
-     * Center the graph in the viewport
-     */
-    private void centerGraph() {
-        // Use SwingUtilities.invokeLater to ensure viewport is ready
-        SwingUtilities.invokeLater(() -> {
-            Object[] cells = graph.getChildCells(graph.getDefaultParent());
-            if (cells.length == 0) return;
-
-            // Get viewport dimensions
-            Dimension viewportSize = graphComponent.getViewport().getSize();
-
-            // Ensure viewport has valid size
-            if (viewportSize.width <= 0 || viewportSize.height <= 0) {
-                viewportSize = graphComponent.getSize();
-            }
-
-            // Calculate graph bounds
-            double minX = Double.MAX_VALUE;
-            double maxX = Double.MIN_VALUE;
-            double minY = Double.MAX_VALUE;
-            double maxY = Double.MIN_VALUE;
-
-            for (Object cell : cells) {
-                if (cell instanceof mxCell && ((mxCell) cell).isVertex()) {
-                    mxCell mxCell = (mxCell) cell;
-                    mxGeometry geo = mxCell.getGeometry();
-                    if (geo != null) {
-                        minX = Math.min(minX, geo.getX());
-                        maxX = Math.max(maxX, geo.getX() + geo.getWidth());
-                        minY = Math.min(minY, geo.getY());
-                        maxY = Math.max(maxY, geo.getY() + geo.getHeight());
-                    }
-                }
-            }
-
-            double graphWidth = maxX - minX;
-            double graphHeight = maxY - minY;
-
-            // Calculate offset to center horizontally, keep margin from top
-            double offsetX = Math.max(50, (viewportSize.width - graphWidth) / 2 - minX);
-            double offsetY = 50 - minY;  // Always start 50px from top
-
-            // Move all cells
-            graph.getModel().beginUpdate();
-            try {
-                for (Object cell : cells) {
-                    if (cell instanceof mxCell) {
-                        mxCell mxCell = (mxCell) cell;
-                        mxGeometry geo = mxCell.getGeometry();
-                        if (geo != null) {
-                            geo = (mxGeometry) geo.clone();
-                            geo.setX(geo.getX() + offsetX);
-                            geo.setY(geo.getY() + offsetY);
-                            graph.getModel().setGeometry(cell, geo);
-                        }
-                    }
-                }
-            } finally {
-                graph.getModel().endUpdate();
-            }
-
-            graphComponent.refresh();
-        });
     }
 
     /**
